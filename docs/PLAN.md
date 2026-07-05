@@ -219,39 +219,39 @@ These are the levers for "game feel." We tune them by playtesting, not by spec.
 Scope for v1 = **Core mechanics MVP** (Milestones 0–3). Everything after is stretch.
 
 ### Milestone 0 — Project setup
-- [ ] Scaffold Vite + TS + Phaser 4.0.0, `index.html`, `main.ts`, game config.
-- [ ] Native resolution **256×240** (NES viewport), `zoom: 3`, `pixelArt: true`, `roundPixels: true` — no smoothing.
-- [ ] Scale Manager: `Scale.FIT` + `CENTER_BOTH` + resize handling, so the canvas already adapts to any window/mobile viewport (renderer stays device-agnostic).
-- [ ] Empty GameScene renders a background color at a stable 60 FPS.
+- [x] Scaffold Vite + TS + Phaser 4.0.0, `index.html`, `main.ts`, game config.
+- [x] Native resolution **256×240** (NES viewport), `zoom: 3`, `pixelArt: true`, `roundPixels: true` — no smoothing.
+- [x] Scale Manager: `Scale.FIT` + `CENTER_BOTH` + resize handling, so the canvas already adapts to any window/mobile viewport (renderer stays device-agnostic).
+- [x] Empty GameScene renders a background color at a stable 60 FPS.
 
 ### Milestone 1 — Movement & physics prototype (game feel)
-- [ ] Enable **fixed timestep** (`arcade.fps: 60, fixedStep: true`) *before* tuning anything.
-- [ ] BootScene generates placeholder textures at runtime (Mario + ground) — no asset files needed yet.
-- [ ] Stand up the `InputController` seam; ship `KeyboardController` producing `PlayerIntent`. Player consumes intent only, never raw keys.
-- [ ] Player sprite with Arcade body, gravity, world-bounds collision.
-- [ ] Left/right with acceleration + friction; run button; variable-height jump (cut velocity on early release).
-- [ ] Coyote time + jump buffering. **Goal: it *feels* like Mario.**
+- [x] Enable **fixed timestep** (`arcade.fps: 60, fixedStep: true`) *before* tuning anything.
+- [x] BootScene generates placeholder textures at runtime (Mario + ground) — no asset files needed yet.
+- [x] Stand up the `InputController` seam; ship `KeyboardController` producing `PlayerIntent`. Player consumes intent only, never raw keys.
+- [x] Player sprite with Arcade body, gravity, world-bounds collision.
+- [x] Left/right with acceleration + friction; run button; variable-height jump (cut velocity on early release).
+- [x] Coyote time + jump buffering. **Goal: it *feels* like Mario.**
 
 ### Milestone 2 — Level & camera
-- [ ] `level-1-1.ts` data + `TileMapBuilder` producing ground/brick/pipe colliders.
-- [ ] Player collides with all solids; can traverse a short authored section.
-- [ ] Camera follows player with level bounds; can't leave the left edge.
+- [x] `level-1-1.ts` data + `TileMapBuilder` producing ground/brick/pipe colliders.
+- [x] Player collides with all solids; can traverse a short authored section.
+- [x] Camera follows player with level bounds; can't leave the left edge.
 
 ### Milestone 3 — Enemies & interactions (MVP complete)
-- [ ] Goomba: walks, turns at edges/walls.
-- [ ] Stomp resolution via `collider` + `body.touching` (down/up), not a bare overlap: land on top → squish enemy + bounce; side hit → player dies/resets.
-- [ ] Coins: overlap to collect + increment counter.
-- [ ] Basic HUD (UIScene): score + coins.
-- [ ] Death & level reset.
+- [x] Goomba: walks, turns at edges/walls.
+- [x] Stomp resolution via `collider` + `body.touching` (down/up), not a bare overlap: land on top → squish enemy + bounce; side hit → player dies/resets.
+- [x] Coins: overlap to collect + increment counter.
+- [x] Basic HUD (UIScene): score + coins.
+- [x] Death & level reset.
 
 ### Milestone 4+ — Toward faithful 1-1 (stretch)
-- [ ] `?` blocks: bump, spawn coin/mushroom; brick break.
-- [ ] Mushroom power-up (small ↔ big Mario), fire flower + fireballs.
-- [ ] Koopa + shell mechanics; multiple enemies.
-- [ ] Full 1-1 layout via Tiled; pipes with heights; the pit; staircase.
-- [ ] Flagpole slide + level-complete sequence; timer; lives; 1-UPs.
-- [ ] Audio (jump/coin/stomp/music), pause menu, title screen.
-- [ ] **Mobile support (additive):** `TouchController` + `TouchControlsScene` on-screen d-pad/buttons emitting the same `PlayerIntent`; auto-enable on touch devices. No entity/physics changes required.
+- [x] `?` blocks: bump, spawn coin/mushroom; brick break.
+- [x] Mushroom power-up (small ↔ big Mario), fire flower + fireballs.
+- [x] Koopa + shell mechanics; multiple enemies.
+- [x] Full 1-1 layout (authored array; Tiled deferred, same `TileMapBuilder` seam); pipes with heights; the pit; staircase.
+- [x] Flagpole slide + level-complete sequence; timer; lives; 1-UPs.
+- [x] Audio (jump/coin/stomp/music), pause menu, title screen.
+- [x] **Mobile support (additive):** `TouchController` + `TouchControlsScene` on-screen d-pad/buttons emitting the same `PlayerIntent`; auto-enable on touch devices. No entity/physics changes required.
 - [ ] Swap placeholders for finished original sprites.
 
 ---
