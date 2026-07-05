@@ -7,6 +7,8 @@ import type { BumpResult } from '../entities/Block';
 import { PowerUp } from '../entities/PowerUp';
 import { Fireball } from '../entities/Fireball';
 import { KeyboardController } from '../systems/input/KeyboardController';
+import { CompositeController } from '../systems/input/CompositeController';
+import { TouchController } from '../systems/input/TouchController';
 import type { InputController } from '../systems/input/InputController';
 import { getAudio } from '../systems/audio/AudioBus';
 import { LEVEL_1_1 } from '../level/level-1-1';
@@ -98,7 +100,12 @@ export class GameScene extends Scene {
         this.groundSurfaceY = level.pixelHeight - 2 * TILE;
 
         // Input seam + player. Entities consume PlayerIntent, never raw keys.
-        this.controller = new KeyboardController(this);
+        // On touch devices, keyboard and on-screen controls drive Mario at once
+        // (PLAN §12) — both feed one merged PlayerIntent, so this stays additive.
+        const useTouch = this.sys.game.device.input.touch;
+        this.controller = useTouch
+            ? new CompositeController([new KeyboardController(this), new TouchController()])
+            : new KeyboardController(this);
         this.player = new Player(this, level.playerSpawn.x, level.playerSpawn.y);
         // Player signals its own jumps; the scene owns the sfx (Player stays audio-free).
         this.player.on('jump', () => this.audio.play('jump'));
@@ -176,6 +183,11 @@ export class GameScene extends Scene {
         // HUD overlay runs in parallel on top of this scene.
         if (!this.scene.isActive('UI')) {
             this.scene.launch('UI');
+        }
+
+        // On touch devices, raise the on-screen controls overlay next to the HUD.
+        if (useTouch && !this.scene.isActive('Touch')) {
+            this.scene.launch('Touch');
         }
 
         // Pause on P / ESC: overlay the Pause scene and freeze this one. The
@@ -582,6 +594,7 @@ export class GameScene extends Scene {
         this.showBanner('GAME OVER');
         this.time.delayedCall(2500, () => {
             this.scene.stop('UI');
+            this.scene.stop('Touch');
             this.scene.start('Title');
         });
     }

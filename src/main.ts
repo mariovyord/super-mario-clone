@@ -6,6 +6,7 @@ import { TitleScene } from './scenes/TitleScene';
 import { GameScene } from './scenes/GameScene';
 import { UIScene } from './scenes/UIScene';
 import { PauseScene } from './scenes/PauseScene';
+import { TouchControlsScene } from './scenes/TouchControlsScene';
 
 const config: Phaser.Types.Core.GameConfig = {
     type: AUTO,
@@ -37,7 +38,7 @@ const config: Phaser.Types.Core.GameConfig = {
         },
     },
 
-    scene: [BootScene, PreloadScene, TitleScene, GameScene, UIScene, PauseScene],
+    scene: [BootScene, PreloadScene, TitleScene, GameScene, UIScene, PauseScene, TouchControlsScene],
 };
 
 const game = new Game(config);
