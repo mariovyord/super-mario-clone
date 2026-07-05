@@ -14,4 +14,6 @@ export interface PlayerIntent {
     jumpHeld: boolean;
     /** Run / fire button is held. */
     run: boolean;
+    /** Run/fire button pressed *this frame* (edge-triggered) — shoots a fireball. */
+    firePressed: boolean;
 }

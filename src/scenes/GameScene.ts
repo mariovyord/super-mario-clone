@@ -2,6 +2,8 @@ import { Scene } from 'phaser';
 import { Player } from '../entities/Player';
 import { Goomba } from '../entities/Goomba';
 import { Block } from '../entities/Block';
+import { PowerUp } from '../entities/PowerUp';
+import { Fireball } from '../entities/Fireball';
 import { KeyboardController } from '../systems/input/KeyboardController';
 import type { InputController } from '../systems/input/InputController';
 import { LEVEL_1_1 } from '../level/level-1-1';
@@ -11,22 +13,26 @@ import {
     STOMP_SCORE,
     COIN_SCORE,
     BRICK_SCORE,
+    POWERUP_SCORE,
+    FIREBALL_MAX,
     RESPAWN_DELAY_MS,
 } from '../config/constants';
 
 /**
  * GameScene owns the level: it builds the tilemap colliders, spawns Mario, the
- * enemies and coins, wires up physics, and runs the scrolling camera.
+ * enemies, blocks, coins and power-ups, wires up physics, and runs the camera.
  *
- * Milestone 3 adds the interactions that complete the MVP: Goombas that get
- * stomped (or kill Mario on a side hit), collectible coins, a pit death plane,
- * and death → level reset. Score/coins live in `this.registry`; the HUD (UIScene)
- * reacts to its `changedata` events, so the two scenes stay decoupled (PLAN §4).
+ * Milestone 5 adds power states: bumping a power-up block yields a mushroom
+ * (grow) or a fire flower (shoot fireballs); taking a hit shrinks big/fire Mario
+ * instead of killing him. Score/coins live in `this.registry`; the HUD reacts to
+ * its `changedata` events, so the scenes stay decoupled (PLAN §4).
  */
 export class GameScene extends Scene {
     private player!: Player;
     private controller!: InputController;
     private goombas!: Phaser.GameObjects.Group;
+    private powerups!: Phaser.GameObjects.Group;
+    private fireballs!: Phaser.GameObjects.Group;
     /** Y below which Mario is considered fallen into a pit (level floor line). */
     private deathY = 0;
     /** True while the death → reset sequence is playing (blocks re-triggering). */
@@ -71,10 +77,13 @@ export class GameScene extends Scene {
             this.goombas.add(new Goomba(this, spawn.x, spawn.y));
         }
 
-        // Interactive blocks (question + brick): solid, but bump-reactive.
+        // Interactive blocks (question + power-up + brick): solid, bump-reactive.
         const blocks = this.add.group();
         for (const spawn of level.questionSpawns) {
             blocks.add(new Block(this, spawn.x, spawn.y, 'question'));
+        }
+        for (const spawn of level.powerupSpawns) {
+            blocks.add(new Block(this, spawn.x, spawn.y, 'powerup'));
         }
         for (const spawn of level.brickSpawns) {
             blocks.add(new Block(this, spawn.x, spawn.y, 'brick'));
@@ -86,19 +95,24 @@ export class GameScene extends Scene {
             coins.create(spawn.x, spawn.y, 'coin');
         }
 
+        // Power-ups and fireballs are spawned dynamically; start empty.
+        this.powerups = this.add.group();
+        this.fireballs = this.add.group();
+
         // --- Colliders / overlaps (registered once) ---
         this.physics.add.collider(this.player, level.solids);
+        this.physics.add.collider(this.player, blocks, this.onPlayerHitBlock, undefined, this);
         this.physics.add.collider(this.goombas, level.solids);
         this.physics.add.collider(this.goombas, blocks);
+        this.physics.add.collider(this.powerups, level.solids);
+        this.physics.add.collider(this.powerups, blocks);
+        this.physics.add.collider(this.fireballs, level.solids, this.onFireballSolid, undefined, this);
+        this.physics.add.collider(this.fireballs, blocks, this.onFireballSolid, undefined, this);
+
         this.physics.add.overlap(this.player, coins, this.onCollectCoin, undefined, this);
-        this.physics.add.collider(this.player, blocks, this.onPlayerHitBlock, undefined, this);
-        this.physics.add.collider(
-            this.player,
-            this.goombas,
-            this.onPlayerHitGoomba,
-            undefined,
-            this,
-        );
+        this.physics.add.overlap(this.player, this.powerups, this.onCollectPowerUp, undefined, this);
+        this.physics.add.overlap(this.player, this.goombas, this.onPlayerHitGoomba, undefined, this);
+        this.physics.add.overlap(this.fireballs, this.goombas, this.onFireballHitGoomba, undefined, this);
 
         // Camera tracks Mario (roundPixels keeps the pixel-art crisp).
         this.cameras.main.startFollow(this.player, true);
@@ -120,8 +134,15 @@ export class GameScene extends Scene {
         this.controller.update();
         this.player.update(this.controller.intent, delta);
 
+        if (this.controller.intent.firePressed) {
+            this.tryShootFireball();
+        }
+
         for (const goomba of this.goombas.getChildren()) {
             (goomba as Goomba).update();
+        }
+        for (const powerup of this.powerups.getChildren()) {
+            (powerup as PowerUp).update();
         }
 
         // Pit death plane: fell below the level floor with no ground to catch him.
@@ -137,9 +158,24 @@ export class GameScene extends Scene {
         this.collectCoin();
     };
 
+    /** Power-up pickup: mushrooms grow Mario, fire flowers arm his fireballs. */
+    private onCollectPowerUp: Phaser.Types.Physics.Arcade.ArcadePhysicsCallback = (
+        _player,
+        powerupObj,
+    ) => {
+        const powerup = powerupObj as PowerUp;
+        if (powerup.kind === 'mushroom') {
+            this.player.grow();
+        } else {
+            this.player.upgradeToFire();
+        }
+        powerup.destroy();
+        this.addScore(POWERUP_SCORE);
+    };
+
     /**
-     * Player↔block: only an underside bonk (`touching.up`) counts. A question
-     * block yields a coin (which pops out of the top); a brick may shatter.
+     * Player↔block: only an underside bonk (`touching.up`) counts. Question
+     * blocks yield a coin, power-up blocks yield an item, bricks may shatter.
      */
     private onPlayerHitBlock: Phaser.Types.Physics.Arcade.ArcadePhysicsCallback = (
         playerObj,
@@ -156,10 +192,78 @@ export class GameScene extends Scene {
         if (result === 'coin') {
             this.popCoin(block.x, block.y);
             this.collectCoin();
+        } else if (result === 'powerup') {
+            this.spawnPowerUp(block.x, block.y);
         } else if (result === 'break') {
             this.addScore(BRICK_SCORE);
         }
     };
+
+    /**
+     * Player↔Goomba resolution. A stomp is "Mario moving down onto the Goomba's
+     * top" — classified from `body.touching`, never a bare overlap (PLAN §4/§10).
+     * A side hit damages Mario (shrinks big/fire, kills small).
+     */
+    private onPlayerHitGoomba: Phaser.Types.Physics.Arcade.ArcadePhysicsCallback = (
+        playerObj,
+        goombaObj,
+    ) => {
+        const player = playerObj as Player;
+        const goomba = goombaObj as Goomba;
+        if (goomba.isDead || player.isDead) {
+            return;
+        }
+
+        const pBody = player.body as Phaser.Physics.Arcade.Body;
+        const gBody = goomba.body as Phaser.Physics.Arcade.Body;
+
+        if (pBody.touching.down && gBody.touching.up) {
+            goomba.stomp();
+            player.bounce();
+            this.addScore(STOMP_SCORE);
+        } else if (player.damage()) {
+            this.killPlayer();
+        }
+    };
+
+    /** Fireball hit a solid: burst only if it struck a vertical wall. */
+    private onFireballSolid: Phaser.Types.Physics.Arcade.ArcadePhysicsCallback = (fireballObj) => {
+        (fireballObj as Fireball).onSolidContact();
+    };
+
+    /** Fireball hit a Goomba: knock it out and consume the fireball. */
+    private onFireballHitGoomba: Phaser.Types.Physics.Arcade.ArcadePhysicsCallback = (
+        fireballObj,
+        goombaObj,
+    ) => {
+        const fireball = fireballObj as Fireball;
+        const goomba = goombaObj as Goomba;
+        if (fireball.isSpent || goomba.isDead) {
+            return;
+        }
+        const fBody = fireball.body as Phaser.Physics.Arcade.Body;
+        goomba.knockOut(fBody.velocity.x < 0 ? -1 : 1);
+        fireball.burst();
+        this.addScore(STOMP_SCORE);
+    };
+
+    /** Spawn a power-up from a bumped block: mushroom if small, else fire flower. */
+    private spawnPowerUp(x: number, y: number): void {
+        const kind = this.player.isBig ? 'fire' : 'mushroom';
+        this.powerups.add(new PowerUp(this, x, y, kind));
+    }
+
+    /** Fire Mario shoots, capped at FIREBALL_MAX live fireballs. */
+    private tryShootFireball(): void {
+        if (!this.player.isFire || this.player.isDead) {
+            return;
+        }
+        if (this.fireballs.countActive(true) >= FIREBALL_MAX) {
+            return;
+        }
+        const dir = this.player.facing;
+        this.fireballs.add(new Fireball(this, this.player.x + dir * 8, this.player.y, dir));
+    }
 
     /** A coin bursting out of a bumped block: arcs up over the block, then pops. */
     private popCoin(x: number, y: number): void {
@@ -179,33 +283,6 @@ export class GameScene extends Scene {
         this.addScore(COIN_SCORE);
         this.registry.set('coins', (this.registry.get('coins') as number) + 1);
     }
-
-    /**
-     * Player↔Goomba resolution. A stomp is "Mario moving down onto the Goomba's
-     * top" — classified from `body.touching`, never a bare overlap (PLAN §4/§10).
-     * Anything else is a side hit and kills Mario.
-     */
-    private onPlayerHitGoomba: Phaser.Types.Physics.Arcade.ArcadePhysicsCallback = (
-        playerObj,
-        goombaObj,
-    ) => {
-        const player = playerObj as Player;
-        const goomba = goombaObj as Goomba;
-        if (goomba.isDead || player.isDead) {
-            return;
-        }
-
-        const pBody = player.body as Phaser.Physics.Arcade.Body;
-        const gBody = goomba.body as Phaser.Physics.Arcade.Body;
-
-        if (pBody.touching.down && gBody.touching.up) {
-            goomba.stomp();
-            player.bounce();
-            this.addScore(STOMP_SCORE);
-        } else {
-            this.killPlayer();
-        }
-    };
 
     private addScore(points: number): void {
         this.registry.set('score', (this.registry.get('score') as number) + points);

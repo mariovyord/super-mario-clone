@@ -20,6 +20,7 @@ export class KeyboardController implements InputController {
         jumpPressed: false,
         jumpHeld: false,
         run: false,
+        firePressed: false,
     };
 
     private readonly cursors: Phaser.Types.Input.Keyboard.CursorKeys;
@@ -51,6 +52,8 @@ export class KeyboardController implements InputController {
         this.intent.jumpHeld = c.space.isDown || c.up.isDown || k.Z.isDown;
 
         this.intent.run = c.shift.isDown || k.X.isDown;
+        // Same button as run, but edge-triggered: one fireball per fresh press.
+        this.intent.firePressed = Input.Keyboard.JustDown(c.shift) || Input.Keyboard.JustDown(k.X);
     }
 
     destroy(): void {

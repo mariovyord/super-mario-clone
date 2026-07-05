@@ -71,6 +71,20 @@ export class Goomba extends Physics.Arcade.Sprite {
         this.scene.time.delayedCall(350, () => this.destroy());
     }
 
+    /** Knocked out by a fireball: flip over and tumble off-screen. */
+    knockOut(dir: 1 | -1): void {
+        if (this.dead) {
+            return;
+        }
+        this.dead = true;
+
+        const body = this.body as Physics.Arcade.Body;
+        body.checkCollision.none = true;
+        this.setFlipY(true);
+        this.setVelocity(40 * dir, -180);
+        this.scene.time.delayedCall(800, () => this.destroy());
+    }
+
     /**
      * Ledge probe: is there a solid tile just beyond the leading foot? We sample
      * a tiny rect ahead-and-below the body and ask the physics world for static

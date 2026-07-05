@@ -13,7 +13,13 @@ import {
     JUMP_BUFFER_MS,
     STOMP_BOUNCE,
     DEATH_HOP,
+    BIG_WIDTH,
+    BIG_HEIGHT,
+    INVINCIBLE_MS,
 } from '../config/constants';
+
+/** Mario's power state: small → big → fire, walked back on damage. */
+export type PowerState = 'small' | 'big' | 'fire';
 
 /**
  * Mario. Consumes a `PlayerIntent` each frame and never reads input directly
@@ -33,6 +39,10 @@ export class Player extends Physics.Arcade.Sprite {
     private cutApplied = false;
     /** Once dead, Mario ignores input and plays out the death hop. */
     private dead = false;
+    /** Current power form. */
+    private power: PowerState = 'small';
+    /** Remaining invulnerability after a hit (ms); Mario blinks while > 0. */
+    private invincibleMs = 0;
 
     constructor(scene: Scene, x: number, y: number) {
         super(scene, x, y, 'mario');
@@ -96,6 +106,15 @@ export class Player extends Physics.Arcade.Sprite {
         if (onGround) {
             this.cutApplied = false;
         }
+
+        // --- Invulnerability blink after a hit ---
+        if (this.invincibleMs > 0) {
+            this.invincibleMs -= delta;
+            this.setAlpha(Math.floor(this.invincibleMs / 70) % 2 === 0 ? 1 : 0.35);
+            if (this.invincibleMs <= 0) {
+                this.setAlpha(1);
+            }
+        }
     }
 
     /** True once Mario has died (drives the scene's reset timing). */
@@ -103,9 +122,66 @@ export class Player extends Physics.Arcade.Sprite {
         return this.dead;
     }
 
-    /** Whether Mario is in his big form — drives brick-breaking (Milestone 5). */
+    /** Whether Mario is in his big form — drives brick-breaking. */
     get isBig(): boolean {
+        return this.power !== 'small';
+    }
+
+    /** Whether Mario can shoot fireballs. */
+    get isFire(): boolean {
+        return this.power === 'fire';
+    }
+
+    /** Facing direction from the sprite flip: +1 right, -1 left. */
+    get facing(): 1 | -1 {
+        return this.flipX ? -1 : 1;
+    }
+
+    /** Grow small → big (a mushroom). Already-big Mario is unaffected. */
+    grow(): void {
+        if (this.power !== 'small') {
+            return;
+        }
+        this.power = 'big';
+        this.morph('marioBig', BIG_WIDTH, BIG_HEIGHT);
+    }
+
+    /** Upgrade to fire form (a fire flower), enlarging if still small. */
+    upgradeToFire(): void {
+        this.power = 'fire';
+        this.morph('marioFire', BIG_WIDTH, BIG_HEIGHT);
+    }
+
+    /**
+     * Take a hit. Big/fire Mario shrinks to small and gets brief invulnerability;
+     * small Mario returns `true` to tell the scene he should die. Hits during the
+     * invulnerability window are ignored.
+     */
+    damage(): boolean {
+        if (this.dead || this.invincibleMs > 0) {
+            return false;
+        }
+        if (this.power === 'small') {
+            return true;
+        }
+        this.power = 'small';
+        this.morph('mario', 16, 16);
+        this.invincibleMs = INVINCIBLE_MS;
         return false;
+    }
+
+    /**
+     * Swap texture + body size while keeping Mario's feet planted (so growing
+     * pushes his head up, not his feet down through the floor).
+     */
+    private morph(texture: string, width: number, height: number): void {
+        const body = this.body as Physics.Arcade.Body;
+        const feet = body.bottom;
+        this.setTexture(texture);
+        body.setSize(width, height);
+        // With origin 0.5 and a centered body, feet = y + height/2.
+        this.y = feet - height / 2;
+        this.setAlpha(1);
     }
 
     /** Little upward hop after stomping an enemy. */

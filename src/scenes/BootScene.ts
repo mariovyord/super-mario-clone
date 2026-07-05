@@ -91,6 +91,46 @@ export class BootScene extends Scene {
             g.fillStyle(0xeeeeee); g.fillRect(7, 0, 2, 16);            // pole
             g.fillStyle(0x2ecc40); g.fillTriangle(9, 2, 9, 8, 15, 5); // pennant
         });
+
+        // Big Mario — 16x32, same palette as small Mario but two tiles tall.
+        this.makeTexture('marioBig', 16, 32, (g) => {
+            g.fillStyle(0xe52521); g.fillRect(0, 0, 16, 6);    // hat
+            g.fillStyle(0xffa24c); g.fillRect(0, 6, 16, 8);    // face
+            g.fillStyle(0x000000); g.fillRect(11, 8, 2, 2);    // eye
+            g.fillStyle(0x1f6feb); g.fillRect(0, 14, 16, 12);  // overalls
+            g.fillStyle(0xe52521); g.fillRect(0, 14, 4, 12);   // arm
+            g.fillStyle(0x6a3805); g.fillRect(0, 26, 16, 6);   // shoes/legs
+        });
+
+        // Fire Mario — big silhouette, white + red palette.
+        this.makeTexture('marioFire', 16, 32, (g) => {
+            g.fillStyle(0xffffff); g.fillRect(0, 0, 16, 6);    // hat (white)
+            g.fillStyle(0xffa24c); g.fillRect(0, 6, 16, 8);    // face
+            g.fillStyle(0x000000); g.fillRect(11, 8, 2, 2);    // eye
+            g.fillStyle(0xe52521); g.fillRect(0, 14, 16, 12);  // overalls (red)
+            g.fillStyle(0xffffff); g.fillRect(0, 14, 4, 12);   // arm (white)
+            g.fillStyle(0x6a3805); g.fillRect(0, 26, 16, 6);   // shoes
+        });
+
+        // Mushroom — red cap, white spots, tan stalk.
+        this.makeTexture('mushroom', 16, 16, (g) => {
+            g.fillStyle(0xf0d8b0); g.fillRect(3, 8, 10, 8);    // stalk
+            g.fillStyle(0xe52521); g.fillEllipse(8, 7, 16, 12); // cap
+            g.fillStyle(0xffffff); g.fillCircle(5, 6, 2); g.fillCircle(11, 6, 2);
+        });
+
+        // Fire flower — green stalk, orange/yellow bloom.
+        this.makeTexture('fireFlower', 16, 16, (g) => {
+            g.fillStyle(0x2ecc40); g.fillRect(7, 9, 2, 7);     // stalk
+            g.fillStyle(0xff7b00); g.fillCircle(8, 6, 5);      // petals
+            g.fillStyle(0xfff200); g.fillCircle(8, 6, 2);      // centre
+        });
+
+        // Fireball — small orange/white ball.
+        this.makeTexture('fireball', 8, 8, (g) => {
+            g.fillStyle(0xff5000); g.fillCircle(4, 4, 4);
+            g.fillStyle(0xffe000); g.fillCircle(4, 4, 2);
+        });
     }
 
     /** Draw into an off-list Graphics, bake it to a texture, then discard it. */

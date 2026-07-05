@@ -22,6 +22,8 @@ export interface LevelBuildResult {
     coinSpawns: PhaserMath.Vector2[];
     /** Question-block spawn points — interactive, bumped for coins (Milestone 4). */
     questionSpawns: PhaserMath.Vector2[];
+    /** Power-up block spawn points — bumped for a mushroom/fire flower (M5). */
+    powerupSpawns: PhaserMath.Vector2[];
     /** Breakable brick spawn points (Milestone 4). */
     brickSpawns: PhaserMath.Vector2[];
     /** Flag position, if the level has one. */
@@ -55,6 +57,7 @@ export class TileMapBuilder {
         const goombaSpawns: PhaserMath.Vector2[] = [];
         const coinSpawns: PhaserMath.Vector2[] = [];
         const questionSpawns: PhaserMath.Vector2[] = [];
+        const powerupSpawns: PhaserMath.Vector2[] = [];
         const brickSpawns: PhaserMath.Vector2[] = [];
         let playerSpawn = new PhaserMath.Vector2(TILE * 2, TILE * 2);
         let flagPosition: PhaserMath.Vector2 | null = null;
@@ -93,6 +96,9 @@ export class TileMapBuilder {
                     case '?':
                         questionSpawns.push(new PhaserMath.Vector2(x, y));
                         break;
+                    case 'U':
+                        powerupSpawns.push(new PhaserMath.Vector2(x, y));
+                        break;
                     case 'B':
                         brickSpawns.push(new PhaserMath.Vector2(x, y));
                         break;
@@ -111,6 +117,7 @@ export class TileMapBuilder {
             goombaSpawns,
             coinSpawns,
             questionSpawns,
+            powerupSpawns,
             brickSpawns,
             flagPosition,
         };

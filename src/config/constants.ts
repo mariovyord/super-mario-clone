@@ -62,3 +62,18 @@ export const COIN_SCORE = 200;
 export const BRICK_SCORE = 50;
 /** Delay between death and level reset (ms), so the death hop is visible. */
 export const RESPAWN_DELAY_MS = 900;
+
+// --- Power-ups (Milestone 5) ---
+/** Big/fire Mario body size (px). Small Mario stays 16x16. */
+export const BIG_WIDTH = 16;
+export const BIG_HEIGHT = 32;
+/** Invulnerability window after taking a hit (ms) — Mario blinks during it. */
+export const INVINCIBLE_MS = 1500;
+/** Mushroom walk speed (px/s). */
+export const MUSHROOM_SPEED = 60;
+/** Points for collecting a power-up (mushroom / fire flower). */
+export const POWERUP_SCORE = 1000;
+/** Fireball horizontal speed (px/s). */
+export const FIREBALL_SPEED = 260;
+/** Max fireballs Mario can have on screen at once (SMB rule). */
+export const FIREBALL_MAX = 2;
