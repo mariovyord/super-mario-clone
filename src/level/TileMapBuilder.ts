@@ -26,10 +26,14 @@ export interface LevelBuildResult {
     questionSpawns: PhaserMath.Vector2[];
     /** Power-up block spawn points — bumped for a mushroom/fire flower (M5). */
     powerupSpawns: PhaserMath.Vector2[];
+    /** 1-up block spawn points — bumped for a 1-up mushroom (Milestone 7). */
+    oneupSpawns: PhaserMath.Vector2[];
     /** Breakable brick spawn points (Milestone 4). */
     brickSpawns: PhaserMath.Vector2[];
     /** Flag position, if the level has one. */
     flagPosition: PhaserMath.Vector2 | null;
+    /** Castle position (end-of-level marker), if any (Milestone 7). */
+    castlePosition: PhaserMath.Vector2 | null;
 }
 
 /**
@@ -61,9 +65,11 @@ export class TileMapBuilder {
         const coinSpawns: PhaserMath.Vector2[] = [];
         const questionSpawns: PhaserMath.Vector2[] = [];
         const powerupSpawns: PhaserMath.Vector2[] = [];
+        const oneupSpawns: PhaserMath.Vector2[] = [];
         const brickSpawns: PhaserMath.Vector2[] = [];
         let playerSpawn = new PhaserMath.Vector2(TILE * 2, TILE * 2);
         let flagPosition: PhaserMath.Vector2 | null = null;
+        let castlePosition: PhaserMath.Vector2 | null = null;
 
         const cols = this.rows.reduce((max, row) => Math.max(max, row.length), 0);
 
@@ -105,11 +111,17 @@ export class TileMapBuilder {
                     case 'U':
                         powerupSpawns.push(new PhaserMath.Vector2(x, y));
                         break;
+                    case 'L':
+                        oneupSpawns.push(new PhaserMath.Vector2(x, y));
+                        break;
                     case 'B':
                         brickSpawns.push(new PhaserMath.Vector2(x, y));
                         break;
                     case 'F':
                         flagPosition = new PhaserMath.Vector2(x, y);
+                        break;
+                    case 'C':
+                        castlePosition = new PhaserMath.Vector2(x, y);
                         break;
                 }
             }
@@ -125,8 +137,10 @@ export class TileMapBuilder {
             coinSpawns,
             questionSpawns,
             powerupSpawns,
+            oneupSpawns,
             brickSpawns,
             flagPosition,
+            castlePosition,
         };
     }
 }

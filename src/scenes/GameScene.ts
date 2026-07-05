@@ -19,6 +19,11 @@ import {
     SHELL_KICK_SCORE,
     FIREBALL_MAX,
     RESPAWN_DELAY_MS,
+    START_LIVES,
+    START_TIME,
+    TIME_TICK_MS,
+    TIME_BONUS,
+    COINS_PER_1UP,
 } from '../config/constants';
 
 /**
@@ -27,9 +32,11 @@ import {
  *
  * Milestone 5 adds power states: bumping a power-up block yields a mushroom
  * (grow) or a fire flower (shoot fireballs); taking a hit shrinks big/fire Mario
- * instead of killing him. Milestone 6 adds Koopas with kickable shells. Score
- * and coins live in `this.registry`; the HUD reacts to its `changedata` events,
- * so the scenes stay decoupled (PLAN §4).
+ * instead of killing him. Milestone 6 adds Koopas with kickable shells.
+ * Milestone 7 adds the countdown timer, lives + 1-UPs, and the flagpole →
+ * castle level-complete sequence. Score, coins, lives and time live in
+ * `this.registry`; the HUD reacts to its `changedata` events, so the scenes
+ * stay decoupled (PLAN §4).
  */
 export class GameScene extends Scene {
     private player!: Player;
@@ -42,6 +49,16 @@ export class GameScene extends Scene {
     private deathY = 0;
     /** True while the death → reset sequence is playing (blocks re-triggering). */
     private resetting = false;
+    /** True once Mario grabs the flagpole — freezes the world for the cutscene. */
+    private levelComplete = false;
+    /** Accumulates real time to drive the SMB-style game-time countdown. */
+    private timeAccumMs = 0;
+    /** Flagpole x, castle x, and the ground surface y — used by the end cutscene. */
+    private flagX = 0;
+    private castleX = 0;
+    private groundSurfaceY = 0;
+    /** The pennant on the flagpole — slides down with Mario during the cutscene. */
+    private flagPennant?: Phaser.GameObjects.Image;
 
     constructor() {
         super('Game');
@@ -49,10 +66,18 @@ export class GameScene extends Scene {
 
     create() {
         this.resetting = false;
+        this.levelComplete = false;
+        this.timeAccumMs = 0;
 
-        // HUD state: reset each (re)start so a death restarts the run cleanly.
-        this.registry.set('score', 0);
-        this.registry.set('coins', 0);
+        // Persistent run state (score, coins, lives) survives death restarts —
+        // it lives in the registry, so we only seed it on the very first boot.
+        // The per-attempt countdown timer resets on every (re)start.
+        if (this.registry.get('lives') === undefined) {
+            this.registry.set('score', 0);
+            this.registry.set('coins', 0);
+            this.registry.set('lives', START_LIVES);
+        }
+        this.registry.set('time', START_TIME);
 
         // Classic SMB 1-1 sky blue.
         this.cameras.main.setBackgroundColor('#5c94fc');
@@ -66,15 +91,20 @@ export class GameScene extends Scene {
         this.deathY = level.pixelHeight;
         this.physics.world.setBounds(0, 0, level.pixelWidth, level.pixelHeight + 6 * TILE);
         this.cameras.main.setBounds(0, 0, level.pixelWidth, level.pixelHeight);
-
-        // Decorative end-of-level marker (non-colliding); flagpole logic is later.
-        if (level.flagPosition) {
-            this.add.image(level.flagPosition.x, level.flagPosition.y, 'flag');
-        }
+        // Top surface of the two-row ground strip — where the cutscene lands Mario.
+        this.groundSurfaceY = level.pixelHeight - 2 * TILE;
 
         // Input seam + player. Entities consume PlayerIntent, never raw keys.
         this.controller = new KeyboardController(this);
         this.player = new Player(this, level.playerSpawn.x, level.playerSpawn.y);
+
+        // End-of-level flagpole (with its trigger) and castle backdrop.
+        if (level.flagPosition) {
+            this.setupFlagpole(level.flagPosition);
+        }
+        if (level.castlePosition) {
+            this.setupCastle(level.castlePosition);
+        }
 
         // Enemies: one Goomba per spawn, held in a group for batch colliders.
         this.goombas = this.add.group();
@@ -88,13 +118,17 @@ export class GameScene extends Scene {
             this.koopas.add(new Koopa(this, spawn.x, spawn.y));
         }
 
-        // Interactive blocks (question + power-up + brick): solid, bump-reactive.
+        // Interactive blocks (question + power-up + 1-up + brick): solid,
+        // bump-reactive. Power-up/1-up blocks look like plain question blocks.
         const blocks = this.add.group();
         for (const spawn of level.questionSpawns) {
             blocks.add(new Block(this, spawn.x, spawn.y, 'question'));
         }
         for (const spawn of level.powerupSpawns) {
             blocks.add(new Block(this, spawn.x, spawn.y, 'powerup'));
+        }
+        for (const spawn of level.oneupSpawns) {
+            blocks.add(new Block(this, spawn.x, spawn.y, 'oneup'));
         }
         for (const spawn of level.brickSpawns) {
             blocks.add(new Block(this, spawn.x, spawn.y, 'brick'));
@@ -144,7 +178,9 @@ export class GameScene extends Scene {
     }
 
     update(_time: number, delta: number) {
-        if (this.resetting) {
+        // During the death reset or the flagpole cutscene, tweens run but the
+        // world is frozen (no input, AI, or timer).
+        if (this.resetting || this.levelComplete) {
             return;
         }
 
@@ -165,8 +201,24 @@ export class GameScene extends Scene {
             (powerup as PowerUp).update();
         }
 
+        this.tickTimer(delta);
+
         // Pit death plane: fell below the level floor with no ground to catch him.
         if (this.player.y > this.deathY) {
+            this.killPlayer();
+        }
+    }
+
+    /** Count the SMB game-timer down in real time; hitting zero is fatal. */
+    private tickTimer(delta: number): void {
+        this.timeAccumMs += delta;
+        if (this.timeAccumMs < TIME_TICK_MS) {
+            return;
+        }
+        this.timeAccumMs -= TIME_TICK_MS;
+        const remaining = (this.registry.get('time') as number) - 1;
+        this.registry.set('time', Math.max(0, remaining));
+        if (remaining <= 0) {
             this.killPlayer();
         }
     }
@@ -178,19 +230,25 @@ export class GameScene extends Scene {
         this.collectCoin();
     };
 
-    /** Power-up pickup: mushrooms grow Mario, fire flowers arm his fireballs. */
+    /**
+     * Power-up pickup: mushrooms grow Mario, fire flowers arm his fireballs,
+     * and a green 1-up mushroom grants an extra life.
+     */
     private onCollectPowerUp: Phaser.Types.Physics.Arcade.ArcadePhysicsCallback = (
         _player,
         powerupObj,
     ) => {
         const powerup = powerupObj as PowerUp;
-        if (powerup.kind === 'mushroom') {
+        if (powerup.kind === 'oneup') {
+            this.grantOneUp(powerup.x, powerup.y);
+        } else if (powerup.kind === 'mushroom') {
             this.player.grow();
+            this.addScore(POWERUP_SCORE);
         } else {
             this.player.upgradeToFire();
+            this.addScore(POWERUP_SCORE);
         }
         powerup.destroy();
-        this.addScore(POWERUP_SCORE);
     };
 
     /**
@@ -237,6 +295,8 @@ export class GameScene extends Scene {
             this.collectCoin();
         } else if (result === 'powerup') {
             this.spawnPowerUp(block.x, block.y);
+        } else if (result === 'oneup') {
+            this.spawnOneUp(block.x, block.y);
         } else if (result === 'break') {
             this.addScore(BRICK_SCORE);
         }
@@ -382,6 +442,11 @@ export class GameScene extends Scene {
         this.powerups.add(new PowerUp(this, x, y, kind));
     }
 
+    /** Spawn a green 1-up mushroom from a bumped 1-up block (Milestone 7). */
+    private spawnOneUp(x: number, y: number): void {
+        this.powerups.add(new PowerUp(this, x, y, 'oneup'));
+    }
+
     /** Fire Mario shoots, capped at FIREBALL_MAX live fireballs. */
     private tryShootFireball(): void {
         if (!this.player.isFire || this.player.isDead) {
@@ -410,21 +475,170 @@ export class GameScene extends Scene {
     /** Award one coin (score + counter) — shared by pickups and bumped blocks. */
     private collectCoin(): void {
         this.addScore(COIN_SCORE);
-        this.registry.set('coins', (this.registry.get('coins') as number) + 1);
+        // Every COINS_PER_1UP coins earns a 1-UP, then the counter rolls over.
+        const coins = (this.registry.get('coins') as number) + 1;
+        if (coins >= COINS_PER_1UP) {
+            this.registry.set('coins', coins - COINS_PER_1UP);
+            this.grantOneUp();
+        } else {
+            this.registry.set('coins', coins);
+        }
+    }
+
+    /** Grant an extra life and float a little "1UP" where it was earned. */
+    private grantOneUp(x?: number, y?: number): void {
+        this.registry.set('lives', (this.registry.get('lives') as number) + 1);
+        const px = x ?? this.player.x;
+        const py = y ?? this.player.y;
+        const label = this.add
+            .text(px, py, '1UP', { fontFamily: 'monospace', fontSize: '8px', color: '#2ecc40' })
+            .setOrigin(0.5)
+            .setDepth(20);
+        this.tweens.add({
+            targets: label,
+            y: py - TILE * 2,
+            alpha: 0,
+            duration: 700,
+            onComplete: () => label.destroy(),
+        });
     }
 
     private addScore(points: number): void {
         this.registry.set('score', (this.registry.get('score') as number) + points);
     }
 
-    /** Play the death hop, then restart the level after a short beat. */
+    /** Death: play the hop, dock a life, then respawn — or end the game at zero. */
     private killPlayer(): void {
-        if (this.resetting) {
+        if (this.resetting || this.levelComplete) {
             return;
         }
         this.resetting = true;
         this.player.kill();
         this.cameras.main.stopFollow();
-        this.time.delayedCall(RESPAWN_DELAY_MS, () => this.scene.restart());
+
+        const lives = (this.registry.get('lives') as number) - 1;
+        this.registry.set('lives', Math.max(0, lives));
+        this.time.delayedCall(RESPAWN_DELAY_MS, () => {
+            if (lives <= 0) {
+                this.gameOver();
+            } else {
+                this.scene.restart();
+            }
+        });
+    }
+
+    /** Out of lives: wipe the run state, show GAME OVER, then start over fresh. */
+    private gameOver(): void {
+        this.registry.set('score', 0);
+        this.registry.set('coins', 0);
+        this.registry.set('lives', START_LIVES);
+        this.showBanner('GAME OVER');
+        this.time.delayedCall(2500, () => this.scene.restart());
+    }
+
+    /**
+     * Build the end-of-level flagpole at the `F` marker (near the top of the
+     * screen): a tall pole with a ball finial and a pennant, plus an overlap
+     * trigger spanning its height. Touching the trigger starts the win cutscene.
+     */
+    private setupFlagpole(pos: Phaser.Math.Vector2): void {
+        this.flagX = pos.x;
+        const topY = pos.y;
+        const baseY = this.groundSurfaceY;
+        const midY = (topY + baseY) / 2;
+
+        // Pole (thin bar) + ball finial, drawn behind the pennant.
+        this.add.rectangle(pos.x, midY, 4, baseY - topY, 0xbfefbf).setDepth(0);
+        this.add.circle(pos.x, topY, 4, 0xe8f8e8).setDepth(1);
+        this.flagPennant = this.add.image(pos.x, topY + 8, 'flag').setDepth(1);
+
+        // Overlap trigger covering the pole: touching it clears the level.
+        const zone = this.add.zone(pos.x, midY, 10, baseY - topY);
+        this.physics.add.existing(zone, true);
+        this.physics.add.overlap(this.player, zone, this.onReachFlag, undefined, this);
+    }
+
+    /** Place the end-of-level castle (bottom-centre origin, sitting on the ground). */
+    private setupCastle(pos: Phaser.Math.Vector2): void {
+        this.castleX = pos.x;
+        this.add.image(pos.x, this.groundSurfaceY, 'castle').setOrigin(0.5, 1).setDepth(0);
+    }
+
+    /**
+     * Mario touched the flagpole: freeze the world and drive the win cutscene
+     * with tweens (`update()` already bails while `levelComplete`). He slides
+     * down the pole, marches to the castle, then the level is tallied.
+     */
+    private onReachFlag: Phaser.Types.Physics.Arcade.ArcadePhysicsCallback = () => {
+        if (this.levelComplete || this.resetting) {
+            return;
+        }
+        this.levelComplete = true;
+
+        // Hand Mario over to the tweens: stop physics, snap him onto the pole.
+        const body = this.player.body as Phaser.Physics.Arcade.Body;
+        body.stop();
+        body.enable = false;
+        this.player.setX(this.flagX);
+        this.cameras.main.stopFollow();
+
+        // Slide Mario (and the pennant) down to the ground, then walk to the castle.
+        const landY = this.groundSurfaceY - this.player.displayHeight / 2;
+        this.tweens.add({
+            targets: this.player,
+            y: landY,
+            duration: 700,
+            ease: 'Sine.easeIn',
+            onComplete: () => this.marchToCastle(),
+        });
+        if (this.flagPennant) {
+            this.tweens.add({
+                targets: this.flagPennant,
+                y: this.groundSurfaceY - 8,
+                duration: 700,
+                ease: 'Sine.easeIn',
+            });
+        }
+    };
+
+    /** Step off the pole and walk into the castle, then tally the level. */
+    private marchToCastle(): void {
+        this.player.setFlipX(false); // face the castle (to the right)
+        this.tweens.add({
+            targets: this.player,
+            x: this.castleX,
+            duration: 1200,
+            ease: 'Linear',
+            onComplete: () => {
+                this.player.setVisible(false); // vanish into the castle
+                this.levelCleared();
+            },
+        });
+    }
+
+    /** Convert remaining time into bonus points, celebrate, then loop the course. */
+    private levelCleared(): void {
+        const time = this.registry.get('time') as number;
+        if (time > 0) {
+            this.addScore(time * TIME_BONUS);
+            this.registry.set('time', 0);
+        }
+        this.showBanner('COURSE CLEAR!');
+        // The run state (score/coins/lives) persists across the restart.
+        this.time.delayedCall(3000, () => this.scene.restart());
+    }
+
+    /** Center a big message fixed to the viewport (score/timer overlays). */
+    private showBanner(text: string): void {
+        const cam = this.cameras.main;
+        this.add
+            .text(cam.width / 2, cam.height / 2, text, {
+                fontFamily: 'monospace',
+                fontSize: '16px',
+                color: '#ffffff',
+            })
+            .setOrigin(0.5)
+            .setScrollFactor(0)
+            .setDepth(100);
     }
 }

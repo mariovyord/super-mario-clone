@@ -138,6 +138,13 @@ export class BootScene extends Scene {
             g.fillStyle(0xffffff); g.fillCircle(5, 6, 2); g.fillCircle(11, 6, 2);
         });
 
+        // 1-up mushroom — same shape, green cap (the extra-life colour).
+        this.makeTexture('mushroom1up', 16, 16, (g) => {
+            g.fillStyle(0xf0d8b0); g.fillRect(3, 8, 10, 8);    // stalk
+            g.fillStyle(0x2ecc40); g.fillEllipse(8, 7, 16, 12); // cap
+            g.fillStyle(0xffffff); g.fillCircle(5, 6, 2); g.fillCircle(11, 6, 2);
+        });
+
         // Fire flower — green stalk, orange/yellow bloom.
         this.makeTexture('fireFlower', 16, 16, (g) => {
             g.fillStyle(0x2ecc40); g.fillRect(7, 9, 2, 7);     // stalk
@@ -149,6 +156,21 @@ export class BootScene extends Scene {
         this.makeTexture('fireball', 8, 8, (g) => {
             g.fillStyle(0xff5000); g.fillCircle(4, 4, 4);
             g.fillStyle(0xffe000); g.fillCircle(4, 4, 2);
+        });
+
+        // Castle — the end-of-level marker. 48x48, drawn with its base at the
+        // bottom so it can be dropped with a bottom-centre origin onto the ground.
+        this.makeTexture('castle', 48, 48, (g) => {
+            g.fillStyle(0x8b3a0a);
+            g.fillRect(4, 16, 40, 32);                                  // keep
+            g.fillStyle(0x5a2405);
+            g.fillRect(20, 30, 8, 18);                                  // doorway
+            g.fillStyle(0x8b3a0a);
+            g.fillRect(18, 6, 12, 12);                                  // central tower
+            // Battlements along the top of the keep.
+            for (let i = 0; i < 5; i++) g.fillRect(4 + i * 9, 12, 5, 5);
+            g.fillStyle(0x111111);
+            g.fillRect(21, 2, 6, 6);                                    // tower window
         });
     }
 

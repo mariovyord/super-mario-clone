@@ -94,3 +94,15 @@ export const POWERUP_SCORE = 1000;
 export const FIREBALL_SPEED = 260;
 /** Max fireballs Mario can have on screen at once (SMB rule). */
 export const FIREBALL_MAX = 2;
+
+// --- Progression: lives, timer, level complete (Milestone 7) ---
+/** Marios you start with (counting the one in play). Game over at zero. */
+export const START_LIVES = 3;
+/** Level countdown, in SMB "time units" (not real seconds). */
+export const START_TIME = 400;
+/** Real milliseconds per time unit — SMB counts down faster than a wall clock. */
+export const TIME_TICK_MS = 400;
+/** Score awarded per remaining time unit when the flagpole is reached. */
+export const TIME_BONUS = 50;
+/** Collect this many coins to earn a 1-UP (then the counter rolls over). */
+export const COINS_PER_1UP = 100;

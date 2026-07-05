@@ -2,16 +2,17 @@ import { Physics } from 'phaser';
 import type { Scene } from 'phaser';
 
 /** What a block does when Mario bonks it from below. */
-export type BumpResult = 'coin' | 'powerup' | 'break' | 'none';
+export type BumpResult = 'coin' | 'powerup' | 'oneup' | 'break' | 'none';
 
 /** Interactive block kinds authored in the level map. */
-export type BlockKind = 'question' | 'powerup' | 'brick';
+export type BlockKind = 'question' | 'powerup' | 'oneup' | 'brick';
 
 /**
  * An interactive block with a static body. Solid like any tile, but it reacts
- * when Mario hits it from underneath (PLAN.md §9, Milestones 4–5):
+ * when Mario hits it from underneath (PLAN.md §9, Milestones 4–7):
  *   - question → yields a coin once, then becomes an inert "used" block.
  *   - powerup  → yields a power-up once (a question block by appearance).
+ *   - oneup    → yields a 1-up mushroom once (also disguised as a question block).
  *   - brick    → breaks apart if big Mario hits it, otherwise just nudges.
  *
  * The block owns its own visuals/animation; the scene owns scoring, the coin
@@ -50,7 +51,7 @@ export class Block extends Physics.Arcade.Sprite {
             return 'none';
         }
 
-        // Question or power-up block: rewards once, then goes inert.
+        // Question / power-up / 1-up block: rewards once, then goes inert.
         if (this.spent) {
             this.nudge();
             return 'none';
@@ -58,7 +59,9 @@ export class Block extends Physics.Arcade.Sprite {
         this.spent = true;
         this.setTexture('blockUsed');
         this.nudge();
-        return this.kind === 'powerup' ? 'powerup' : 'coin';
+        if (this.kind === 'powerup') return 'powerup';
+        if (this.kind === 'oneup') return 'oneup';
+        return 'coin';
     }
 
     /** Short vertical bump; the static body stays put (purely cosmetic). */
