@@ -19,6 +19,11 @@ export const ZOOM = 3;
 // --- Physics ---
 /** World gravity (px/s^2). */
 export const GRAVITY_Y = 1400;
+/**
+ * Terminal downward speed (px/s). Arcade `maxVelocity` clamps the absolute
+ * vertical speed, so this MUST exceed |JUMP_VELOCITY| or it would clip the jump.
+ */
+export const MAX_FALL_SPEED = 900;
 
 // --- Horizontal movement ---
 /** Max walk speed (px/s). */
