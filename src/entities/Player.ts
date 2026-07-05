@@ -11,6 +11,8 @@ import {
     JUMP_CUT,
     COYOTE_MS,
     JUMP_BUFFER_MS,
+    STOMP_BOUNCE,
+    DEATH_HOP,
 } from '../config/constants';
 
 /**
@@ -29,6 +31,8 @@ export class Player extends Physics.Arcade.Sprite {
     private jumpBufferMs = 0;
     /** Guards the variable-height cut so it fires at most once per jump. */
     private cutApplied = false;
+    /** Once dead, Mario ignores input and plays out the death hop. */
+    private dead = false;
 
     constructor(scene: Scene, x: number, y: number) {
         super(scene, x, y, 'mario');
@@ -50,6 +54,10 @@ export class Player extends Physics.Arcade.Sprite {
      */
     update(intent: PlayerIntent, delta: number): void {
         const body = this.body as Physics.Arcade.Body;
+        // Dead Mario is on rails: skip all input-driven movement.
+        if (this.dead) {
+            return;
+        }
         const onGround = body.blocked.down || body.touching.down;
 
         // --- Horizontal movement ---
@@ -88,5 +96,32 @@ export class Player extends Physics.Arcade.Sprite {
         if (onGround) {
             this.cutApplied = false;
         }
+    }
+
+    /** True once Mario has died (drives the scene's reset timing). */
+    get isDead(): boolean {
+        return this.dead;
+    }
+
+    /** Little upward hop after stomping an enemy. */
+    bounce(): void {
+        this.setVelocityY(STOMP_BOUNCE);
+    }
+
+    /**
+     * Kill Mario: pop up, then let gravity pull him down through the world (we
+     * turn off his collisions so he falls past the floor/pit off-screen). The
+     * scene schedules the level reset; here we only play out the death motion.
+     */
+    kill(): void {
+        if (this.dead) {
+            return;
+        }
+        this.dead = true;
+        const body = this.body as Physics.Arcade.Body;
+        this.setAcceleration(0, 0);
+        this.setVelocity(0, DEATH_HOP);
+        body.checkCollision.none = true;
+        this.setCollideWorldBounds(false);
     }
 }

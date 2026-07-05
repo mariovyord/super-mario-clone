@@ -44,3 +44,19 @@ export const JUMP_CUT = 0.45;
 export const COYOTE_MS = 80;
 /** Window before landing during which a jump press is remembered (ms). */
 export const JUMP_BUFFER_MS = 100;
+
+// --- Enemies (Milestone 3) ---
+/** Goomba patrol speed (px/s). Slow, like the original. */
+export const GOOMBA_SPEED = 40;
+
+// --- Interactions (Milestone 3) ---
+/** Upward velocity given to Mario after stomping an enemy (px/s, negative = up). */
+export const STOMP_BOUNCE = -320;
+/** Death "hop": Mario pops up this fast before falling off-screen (px/s). */
+export const DEATH_HOP = -360;
+/** Points awarded for stomping a Goomba. */
+export const STOMP_SCORE = 100;
+/** Points awarded per coin collected. */
+export const COIN_SCORE = 200;
+/** Delay between death and level reset (ms), so the death hop is visible. */
+export const RESPAWN_DELAY_MS = 900;
