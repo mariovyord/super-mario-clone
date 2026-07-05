@@ -48,6 +48,8 @@ export class GameScene extends Scene {
     private koopas!: Phaser.GameObjects.Group;
     private powerups!: Phaser.GameObjects.Group;
     private fireballs!: Phaser.GameObjects.Group;
+    /** Interactive bump-reactive blocks (question / power-up / 1-up / brick). */
+    private blocks!: Phaser.GameObjects.Group;
     /** Y below which Mario is considered fallen into a pit (level floor line). */
     private deathY = 0;
     /** True while the death → reset sequence is playing (blocks re-triggering). */
@@ -133,6 +135,7 @@ export class GameScene extends Scene {
         // Interactive blocks (question + power-up + 1-up + brick): solid,
         // bump-reactive. Power-up/1-up blocks look like plain question blocks.
         const blocks = this.add.group();
+        this.blocks = blocks;
         for (const spawn of level.questionSpawns) {
             blocks.add(new Block(this, spawn.x, spawn.y, 'question'));
         }
@@ -295,20 +298,53 @@ export class GameScene extends Scene {
     /**
      * Player↔block: only an underside bonk (`touching.up`) counts. Question
      * blocks yield a coin, power-up blocks yield an item, bricks may shatter.
+     *
+     * A run of adjacent blocks is one continuous ceiling, and Arcade separates
+     * Mario against whichever block comes first in the group. Because blocks are
+     * grouped by kind, that is often a neighbour rather than the one over his
+     * head — which made a power-up block flanked by question blocks (`B?U?B`)
+     * unreachable. So we redirect the bonk to the block above his head centre.
      */
     private onPlayerHitBlock: Phaser.Types.Physics.Arcade.ArcadePhysicsCallback = (
         playerObj,
         blockObj,
     ) => {
         const player = playerObj as Player;
-        const block = blockObj as Block;
         const pBody = player.body as Phaser.Physics.Arcade.Body;
         if (!pBody.touching.up) {
             return;
         }
+        const block = this.blockOverHead(pBody) ?? (blockObj as Block);
         this.audio.play('bump');
         this.rewardBlockBump(block, block.bump(player.isBig));
     };
+
+    /**
+     * The interactive block Mario just bonked: the one whose column his
+     * horizontal centre falls under, at the height of his head. Falls back to
+     * `null` when nothing lines up (the caller then uses the collided block).
+     */
+    private blockOverHead(pBody: Phaser.Physics.Arcade.Body): Block | null {
+        const headX = pBody.center.x;
+        const headTop = pBody.top;
+        let best: Block | null = null;
+        let bestDx = Infinity;
+        for (const obj of this.blocks.getChildren()) {
+            const b = obj as Block;
+            const bb = b.body as Phaser.Physics.Arcade.StaticBody;
+            // Must sit just above his head (the row he bonked), not lower or on
+            // another level, and his centre must fall within its column.
+            if (bb.bottom > headTop + TILE / 2) continue;
+            if (bb.bottom < headTop - TILE) continue;
+            if (headX < bb.left || headX > bb.right) continue;
+            const dx = Math.abs(bb.center.x - headX);
+            if (dx < bestDx) {
+                bestDx = dx;
+                best = b;
+            }
+        }
+        return best;
+    }
 
     /**
      * Sliding shell↔block: a kicked shell that slams a block from the side
