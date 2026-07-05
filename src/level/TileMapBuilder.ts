@@ -9,7 +9,7 @@ import { TILE } from '../config/constants';
  * without any change here.
  */
 export interface LevelBuildResult {
-    /** Static group of all solid tiles (ground/brick/pipe/question). */
+    /** Static group of all inert solid tiles (ground + pipe). */
     solids: Physics.Arcade.StaticGroup;
     /** Level size in world pixels — drives world + camera bounds. */
     pixelWidth: number;
@@ -20,15 +20,21 @@ export interface LevelBuildResult {
     goombaSpawns: PhaserMath.Vector2[];
     /** Coin pickup points (Milestone 3). */
     coinSpawns: PhaserMath.Vector2[];
+    /** Question-block spawn points — interactive, bumped for coins (Milestone 4). */
+    questionSpawns: PhaserMath.Vector2[];
+    /** Breakable brick spawn points (Milestone 4). */
+    brickSpawns: PhaserMath.Vector2[];
     /** Flag position, if the level has one. */
     flagPosition: PhaserMath.Vector2 | null;
 }
 
-/** Solid tile chars → placeholder texture key (keys generated in BootScene). */
+/**
+ * Inert solid tile chars → placeholder texture key. Bricks (`B`) and question
+ * blocks (`?`) are NOT here: they are interactive `Block` entities spawned by the
+ * scene, so the builder only reports their positions (like goombas/coins).
+ */
 const SOLID_TEXTURES: Record<string, string> = {
     X: 'ground',
-    B: 'brick',
-    '?': 'question',
     P: 'pipe',
 };
 
@@ -48,6 +54,8 @@ export class TileMapBuilder {
         const solids = this.scene.physics.add.staticGroup();
         const goombaSpawns: PhaserMath.Vector2[] = [];
         const coinSpawns: PhaserMath.Vector2[] = [];
+        const questionSpawns: PhaserMath.Vector2[] = [];
+        const brickSpawns: PhaserMath.Vector2[] = [];
         let playerSpawn = new PhaserMath.Vector2(TILE * 2, TILE * 2);
         let flagPosition: PhaserMath.Vector2 | null = null;
 
@@ -82,6 +90,12 @@ export class TileMapBuilder {
                     case 'o':
                         coinSpawns.push(new PhaserMath.Vector2(x, y));
                         break;
+                    case '?':
+                        questionSpawns.push(new PhaserMath.Vector2(x, y));
+                        break;
+                    case 'B':
+                        brickSpawns.push(new PhaserMath.Vector2(x, y));
+                        break;
                     case 'F':
                         flagPosition = new PhaserMath.Vector2(x, y);
                         break;
@@ -96,6 +110,8 @@ export class TileMapBuilder {
             playerSpawn,
             goombaSpawns,
             coinSpawns,
+            questionSpawns,
+            brickSpawns,
             flagPosition,
         };
     }

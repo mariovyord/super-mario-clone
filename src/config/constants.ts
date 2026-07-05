@@ -58,5 +58,7 @@ export const DEATH_HOP = -360;
 export const STOMP_SCORE = 100;
 /** Points awarded per coin collected. */
 export const COIN_SCORE = 200;
+/** Points awarded for breaking a brick (big Mario). */
+export const BRICK_SCORE = 50;
 /** Delay between death and level reset (ms), so the death hop is visible. */
 export const RESPAWN_DELAY_MS = 900;

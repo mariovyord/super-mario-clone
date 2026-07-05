@@ -1,11 +1,18 @@
 import { Scene } from 'phaser';
 import { Player } from '../entities/Player';
 import { Goomba } from '../entities/Goomba';
+import { Block } from '../entities/Block';
 import { KeyboardController } from '../systems/input/KeyboardController';
 import type { InputController } from '../systems/input/InputController';
 import { LEVEL_1_1 } from '../level/level-1-1';
 import { TileMapBuilder } from '../level/TileMapBuilder';
-import { TILE, STOMP_SCORE, COIN_SCORE, RESPAWN_DELAY_MS } from '../config/constants';
+import {
+    TILE,
+    STOMP_SCORE,
+    COIN_SCORE,
+    BRICK_SCORE,
+    RESPAWN_DELAY_MS,
+} from '../config/constants';
 
 /**
  * GameScene owns the level: it builds the tilemap colliders, spawns Mario, the
@@ -64,6 +71,15 @@ export class GameScene extends Scene {
             this.goombas.add(new Goomba(this, spawn.x, spawn.y));
         }
 
+        // Interactive blocks (question + brick): solid, but bump-reactive.
+        const blocks = this.add.group();
+        for (const spawn of level.questionSpawns) {
+            blocks.add(new Block(this, spawn.x, spawn.y, 'question'));
+        }
+        for (const spawn of level.brickSpawns) {
+            blocks.add(new Block(this, spawn.x, spawn.y, 'brick'));
+        }
+
         // Coins: static bodies we only ever overlap-test (never separate).
         const coins = this.physics.add.staticGroup();
         for (const spawn of level.coinSpawns) {
@@ -73,7 +89,9 @@ export class GameScene extends Scene {
         // --- Colliders / overlaps (registered once) ---
         this.physics.add.collider(this.player, level.solids);
         this.physics.add.collider(this.goombas, level.solids);
+        this.physics.add.collider(this.goombas, blocks);
         this.physics.add.overlap(this.player, coins, this.onCollectCoin, undefined, this);
+        this.physics.add.collider(this.player, blocks, this.onPlayerHitBlock, undefined, this);
         this.physics.add.collider(
             this.player,
             this.goombas,
@@ -116,9 +134,51 @@ export class GameScene extends Scene {
     private onCollectCoin: Phaser.Types.Physics.Arcade.ArcadePhysicsCallback = (_player, coinObj) => {
         const coin = coinObj as Phaser.Physics.Arcade.Sprite;
         coin.disableBody(true, true);
+        this.collectCoin();
+    };
+
+    /**
+     * Player↔block: only an underside bonk (`touching.up`) counts. A question
+     * block yields a coin (which pops out of the top); a brick may shatter.
+     */
+    private onPlayerHitBlock: Phaser.Types.Physics.Arcade.ArcadePhysicsCallback = (
+        playerObj,
+        blockObj,
+    ) => {
+        const player = playerObj as Player;
+        const block = blockObj as Block;
+        const pBody = player.body as Phaser.Physics.Arcade.Body;
+        if (!pBody.touching.up) {
+            return;
+        }
+
+        const result = block.bump(player.isBig);
+        if (result === 'coin') {
+            this.popCoin(block.x, block.y);
+            this.collectCoin();
+        } else if (result === 'break') {
+            this.addScore(BRICK_SCORE);
+        }
+    };
+
+    /** A coin bursting out of a bumped block: arcs up over the block, then pops. */
+    private popCoin(x: number, y: number): void {
+        const coin = this.add.image(x, y - TILE, 'coin').setDepth(5);
+        this.tweens.add({
+            targets: coin,
+            y: y - TILE * 2,
+            duration: 160,
+            yoyo: true,
+            ease: 'Quad.easeOut',
+            onComplete: () => coin.destroy(),
+        });
+    }
+
+    /** Award one coin (score + counter) — shared by pickups and bumped blocks. */
+    private collectCoin(): void {
         this.addScore(COIN_SCORE);
         this.registry.set('coins', (this.registry.get('coins') as number) + 1);
-    };
+    }
 
     /**
      * Player↔Goomba resolution. A stomp is "Mario moving down onto the Goomba's

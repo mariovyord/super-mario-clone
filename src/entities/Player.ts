@@ -103,6 +103,11 @@ export class Player extends Physics.Arcade.Sprite {
         return this.dead;
     }
 
+    /** Whether Mario is in his big form — drives brick-breaking (Milestone 5). */
+    get isBig(): boolean {
+        return false;
+    }
+
     /** Little upward hop after stomping an enemy. */
     bounce(): void {
         this.setVelocityY(STOMP_BOUNCE);

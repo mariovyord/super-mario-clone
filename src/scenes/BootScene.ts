@@ -56,6 +56,15 @@ export class BootScene extends Scene {
             g.fillStyle(0xffffff); g.fillRect(7, 4, 2, 5); g.fillRect(7, 11, 2, 2);
         });
 
+        // Used/empty block — a dim brown once a question block is spent.
+        this.makeTexture('blockUsed', 16, 16, (g) => {
+            g.fillStyle(0x8a5a2b); g.fillRect(0, 0, 16, 16);
+            g.lineStyle(1, 0x3d2208); g.strokeRect(0, 0, 16, 16);
+            g.fillStyle(0x6f4622);
+            g.fillRect(3, 3, 2, 2); g.fillRect(11, 3, 2, 2);
+            g.fillRect(3, 11, 2, 2); g.fillRect(11, 11, 2, 2);
+        });
+
         // Pipe (green) with a highlight stripe.
         this.makeTexture('pipe', 16, 16, (g) => {
             g.fillStyle(0x00a800); g.fillRect(0, 0, 16, 16);
