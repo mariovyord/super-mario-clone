@@ -1,17 +1,18 @@
 import { Scene } from 'phaser';
-import { GAME_WIDTH, GAME_HEIGHT, TILE } from '../config/constants';
 import { Player } from '../entities/Player';
 import { KeyboardController } from '../systems/input/KeyboardController';
 import type { InputController } from '../systems/input/InputController';
+import { LEVEL_1_1 } from '../level/level-1-1';
+import { TileMapBuilder } from '../level/TileMapBuilder';
 
 /**
- * GameScene owns the level: entities, camera, and physics wiring. Milestone 1
- * is a movement sandbox — a temporary floor (the physics world's bottom edge)
- * plus Mario driven through the `InputController` seam. Real level colliders and
- * the camera follow arrive in Milestone 2.
+ * GameScene owns the level: it builds the tilemap colliders, spawns Mario, wires
+ * physics, and runs the scrolling camera. Milestone 2 replaces the M1 sandbox
+ * floor with the authored 1-1 slice (see `level-1-1.ts`) and a follow camera.
  *
- * Communication with the HUD flows through `this.registry` + its `changedata`
- * events, never direct scene references (see PLAN.md §4).
+ * Enemies, coins, and the HUD arrive in Milestone 3; the level already records
+ * their spawn points. Communication with the HUD flows through `this.registry`
+ * + its `changedata` events, never direct scene references (see PLAN.md §4).
  */
 export class GameScene extends Scene {
     private player!: Player;
@@ -25,20 +26,30 @@ export class GameScene extends Scene {
         // Classic SMB 1-1 sky blue.
         this.cameras.main.setBackgroundColor('#5c94fc');
 
-        // Temporary M1 floor: shrink the physics world so its bottom edge sits at
-        // the top of a decorative ground strip. Mario collides with the world
-        // bounds and rests exactly on top of the visible ground.
-        const groundHeight = TILE * 2;
-        const floorY = GAME_HEIGHT - groundHeight;
-        this.physics.world.setBounds(0, 0, GAME_WIDTH, floorY);
+        // Build the authored level: static solids + spawn data.
+        const level = new TileMapBuilder(this, LEVEL_1_1).build();
 
-        this.add
-            .tileSprite(0, floorY, GAME_WIDTH, groundHeight, 'ground')
-            .setOrigin(0, 0);
+        // World + camera share the level bounds, so the camera can't drift past
+        // the left edge and Mario can't walk out of the world (PLAN.md §M2).
+        // NOTE: Mario still collides with the world's bottom edge, so falling in
+        // the pit parks him at the floor for now; the death plane is Milestone 3.
+        this.physics.world.setBounds(0, 0, level.pixelWidth, level.pixelHeight);
+        this.cameras.main.setBounds(0, 0, level.pixelWidth, level.pixelHeight);
+
+        // Decorative end-of-level marker (non-colliding); flagpole logic is M4+.
+        if (level.flagPosition) {
+            this.add.image(level.flagPosition.x, level.flagPosition.y, 'flag');
+        }
 
         // Input seam + player. Entities consume PlayerIntent, never raw keys.
         this.controller = new KeyboardController(this);
-        this.player = new Player(this, TILE * 3, floorY - TILE * 3);
+        this.player = new Player(this, level.playerSpawn.x, level.playerSpawn.y);
+
+        // Mario collides with every solid tile.
+        this.physics.add.collider(this.player, level.solids);
+
+        // Camera tracks Mario (roundPixels keeps the pixel-art crisp).
+        this.cameras.main.startFollow(this.player, true);
 
         // HUD overlay runs in parallel on top of this scene.
         this.scene.launch('UI');
