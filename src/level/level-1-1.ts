@@ -9,10 +9,11 @@
  * Legend:
  *   X  ground (solid)      B  brick (solid)       ?  question block (coin)
  *   U  power-up block      P  pipe (solid)        -  empty / sky
- *   M  Mario spawn         G  goomba spawn        o  coin           F  flag
+ *   M  Mario spawn         G  goomba spawn        K  koopa spawn
+ *   o  coin                F  flag
  *
  * Solids (X/P) are inert tiles. Bricks/blocks (B/?/U) are interactive entities;
- * other spawns (M/G/o/F) are placed by the scene.
+ * other spawns (M/G/K/o/F) are placed by the scene.
  */
 export const LEVEL_1_1: string[] = [
     '----------------------------------------------------',
@@ -27,7 +28,7 @@ export const LEVEL_1_1: string[] = [
     '----------------U---B?U?B----------------------B----',
     '-------------------------------------PP-------BB----',
     '---------------------------PP--------PP------BBB----',
-    '--M-------G----------------PP--------PP-G---BBBB----',
+    '--M-------G-------K--------PP--------PP-G---BBBB----',
     'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX---XXXXXXXXXXXXXXXXXX',
     'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX---XXXXXXXXXXXXXXXXXX',
 ];

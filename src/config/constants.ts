@@ -49,6 +49,23 @@ export const JUMP_BUFFER_MS = 100;
 /** Goomba patrol speed (px/s). Slow, like the original. */
 export const GOOMBA_SPEED = 40;
 
+// --- Koopa (Milestone 6) ---
+/** Koopa Troopa patrol speed (px/s) — a touch faster than a Goomba. */
+export const KOOPA_SPEED = 50;
+/** Koopa body size (px). Taller than one tile, like the original turtle. */
+export const KOOPA_WIDTH = 16;
+export const KOOPA_HEIGHT = 24;
+/** Speed of a kicked, sliding shell (px/s) — fast enough to be dangerous. */
+export const SHELL_SPEED = 220;
+/** Points for kicking a stationary shell into motion (first SMB shell score). */
+export const SHELL_KICK_SCORE = 400;
+/**
+ * How long a stationary shell waits before the Koopa climbs back out (ms). It
+ * blinks a warning during the final `SHELL_WAKE_BLINK_MS` before reviving.
+ */
+export const SHELL_REVIVE_MS = 7000;
+export const SHELL_WAKE_BLINK_MS = 2000;
+
 // --- Interactions (Milestone 3) ---
 /** Upward velocity given to Mario after stomping an enemy (px/s, negative = up). */
 export const STOMP_BOUNCE = -320;

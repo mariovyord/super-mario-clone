@@ -92,6 +92,25 @@ export class BootScene extends Scene {
             g.fillStyle(0x2ecc40); g.fillTriangle(9, 2, 9, 8, 15, 5); // pennant
         });
 
+        // Koopa Troopa — 16x24, green shell + yellow head. Faces right; flipped
+        // by the entity when it turns. Feet sit at the bottom of the 24px box.
+        this.makeTexture('koopa', 16, 24, (g) => {
+            g.fillStyle(0xf8d030); g.fillEllipse(9, 5, 9, 9);           // head
+            g.fillStyle(0x000000); g.fillRect(11, 3, 2, 2);            // eye
+            g.fillStyle(0xf8b000); g.fillRect(13, 6, 3, 2);           // snout
+            g.fillStyle(0x00a800); g.fillEllipse(8, 15, 15, 15);      // shell
+            g.fillStyle(0x006000); g.fillEllipse(8, 15, 9, 9);        // shell centre
+            g.fillStyle(0xf8d030); g.fillRect(2, 20, 4, 4); g.fillRect(10, 20, 4, 4); // feet
+        });
+
+        // Shell — the retracted Koopa: a squat green dome, 16x16.
+        this.makeTexture('shell', 16, 16, (g) => {
+            g.fillStyle(0x00a800); g.fillEllipse(8, 9, 15, 12);
+            g.fillStyle(0x006000); g.fillEllipse(8, 9, 9, 7);
+            g.fillStyle(0xf8f8f8); g.fillRect(1, 10, 14, 2);          // rim
+            g.lineStyle(1, 0x004a00); g.strokeRect(1, 10, 14, 2);
+        });
+
         // Big Mario — 16x32, same palette as small Mario but two tiles tall.
         this.makeTexture('marioBig', 16, 32, (g) => {
             g.fillStyle(0xe52521); g.fillRect(0, 0, 16, 6);    // hat

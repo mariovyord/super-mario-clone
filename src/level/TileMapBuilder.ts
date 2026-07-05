@@ -18,6 +18,8 @@ export interface LevelBuildResult {
     playerSpawn: PhaserMath.Vector2;
     /** Goomba spawn points (Milestone 3). */
     goombaSpawns: PhaserMath.Vector2[];
+    /** Koopa Troopa spawn points (Milestone 6). */
+    koopaSpawns: PhaserMath.Vector2[];
     /** Coin pickup points (Milestone 3). */
     coinSpawns: PhaserMath.Vector2[];
     /** Question-block spawn points — interactive, bumped for coins (Milestone 4). */
@@ -55,6 +57,7 @@ export class TileMapBuilder {
     build(): LevelBuildResult {
         const solids = this.scene.physics.add.staticGroup();
         const goombaSpawns: PhaserMath.Vector2[] = [];
+        const koopaSpawns: PhaserMath.Vector2[] = [];
         const coinSpawns: PhaserMath.Vector2[] = [];
         const questionSpawns: PhaserMath.Vector2[] = [];
         const powerupSpawns: PhaserMath.Vector2[] = [];
@@ -90,6 +93,9 @@ export class TileMapBuilder {
                     case 'G':
                         goombaSpawns.push(new PhaserMath.Vector2(x, y));
                         break;
+                    case 'K':
+                        koopaSpawns.push(new PhaserMath.Vector2(x, y));
+                        break;
                     case 'o':
                         coinSpawns.push(new PhaserMath.Vector2(x, y));
                         break;
@@ -115,6 +121,7 @@ export class TileMapBuilder {
             pixelHeight: this.rows.length * TILE,
             playerSpawn,
             goombaSpawns,
+            koopaSpawns,
             coinSpawns,
             questionSpawns,
             powerupSpawns,
