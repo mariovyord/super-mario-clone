@@ -8,6 +8,7 @@ import { PowerUp } from '../entities/PowerUp';
 import { Fireball } from '../entities/Fireball';
 import { KeyboardController } from '../systems/input/KeyboardController';
 import type { InputController } from '../systems/input/InputController';
+import { getAudio } from '../systems/audio/AudioBus';
 import { LEVEL_1_1 } from '../level/level-1-1';
 import { TileMapBuilder } from '../level/TileMapBuilder';
 import {
@@ -59,6 +60,8 @@ export class GameScene extends Scene {
     private groundSurfaceY = 0;
     /** The pennant on the flagpole — slides down with Mario during the cutscene. */
     private flagPennant?: Phaser.GameObjects.Image;
+    /** Shared procedural audio engine (Milestone 8). */
+    private readonly audio = getAudio();
 
     constructor() {
         super('Game');
@@ -97,6 +100,8 @@ export class GameScene extends Scene {
         // Input seam + player. Entities consume PlayerIntent, never raw keys.
         this.controller = new KeyboardController(this);
         this.player = new Player(this, level.playerSpawn.x, level.playerSpawn.y);
+        // Player signals its own jumps; the scene owns the sfx (Player stays audio-free).
+        this.player.on('jump', () => this.audio.play('jump'));
 
         // End-of-level flagpole (with its trigger) and castle backdrop.
         if (level.flagPosition) {
@@ -173,8 +178,30 @@ export class GameScene extends Scene {
             this.scene.launch('UI');
         }
 
-        // Release the controller's key registrations when the scene tears down.
-        this.events.once('shutdown', () => this.controller.destroy());
+        // Pause on P / ESC: overlay the Pause scene and freeze this one. The
+        // Pause scene owns "resume", so a frozen GameScene needn't keep polling.
+        this.input.keyboard?.on('keydown-P', this.pauseGame, this);
+        this.input.keyboard?.on('keydown-ESC', this.pauseGame, this);
+
+        // Kick off the looping background tune (idempotent if already playing).
+        this.audio.startMusic();
+
+        // Release the controller's keys and hush the music when the scene tears down.
+        this.events.once('shutdown', () => {
+            this.controller.destroy();
+            this.audio.stopMusic();
+        });
+    }
+
+    /** Freeze the level and raise the pause overlay (P / ESC). */
+    private pauseGame(): void {
+        if (this.levelComplete || this.resetting) {
+            return;
+        }
+        this.audio.play('pause');
+        this.audio.stopMusic();
+        this.scene.launch('Pause');
+        this.scene.pause();
     }
 
     update(_time: number, delta: number) {
@@ -242,9 +269,11 @@ export class GameScene extends Scene {
         if (powerup.kind === 'oneup') {
             this.grantOneUp(powerup.x, powerup.y);
         } else if (powerup.kind === 'mushroom') {
+            this.audio.play('powerup');
             this.player.grow();
             this.addScore(POWERUP_SCORE);
         } else {
+            this.audio.play('powerup');
             this.player.upgradeToFire();
             this.addScore(POWERUP_SCORE);
         }
@@ -265,6 +294,7 @@ export class GameScene extends Scene {
         if (!pBody.touching.up) {
             return;
         }
+        this.audio.play('bump');
         this.rewardBlockBump(block, block.bump(player.isBig));
     };
 
@@ -298,6 +328,7 @@ export class GameScene extends Scene {
         } else if (result === 'oneup') {
             this.spawnOneUp(block.x, block.y);
         } else if (result === 'break') {
+            this.audio.play('brick');
             this.addScore(BRICK_SCORE);
         }
     }
@@ -323,9 +354,12 @@ export class GameScene extends Scene {
         if (pBody.touching.down && gBody.touching.up) {
             goomba.stomp();
             player.bounce();
+            this.audio.play('stomp');
             this.addScore(STOMP_SCORE);
         } else if (player.damage()) {
             this.killPlayer();
+        } else {
+            this.audio.play('powerdown');
         }
     };
 
@@ -355,9 +389,12 @@ export class GameScene extends Scene {
                 if (stomp) {
                     koopa.stompToShell();
                     player.bounce();
+                    this.audio.play('stomp');
                     this.addScore(STOMP_SCORE);
                 } else if (player.damage()) {
                     this.killPlayer();
+                } else {
+                    this.audio.play('powerdown');
                 }
                 break;
 
@@ -369,6 +406,7 @@ export class GameScene extends Scene {
                     if (stomp) {
                         player.bounce();
                     }
+                    this.audio.play('stomp');
                     this.addScore(SHELL_KICK_SCORE);
                 }
                 break;
@@ -377,8 +415,11 @@ export class GameScene extends Scene {
                 if (stomp) {
                     koopa.stopShell();
                     player.bounce();
+                    this.audio.play('stomp');
                 } else if (!koopa.inGrace && player.damage()) {
                     this.killPlayer();
+                } else if (!koopa.inGrace) {
+                    this.audio.play('powerdown');
                 }
                 break;
         }
@@ -456,6 +497,7 @@ export class GameScene extends Scene {
             return;
         }
         const dir = this.player.facing;
+        this.audio.play('fireball');
         this.fireballs.add(new Fireball(this, this.player.x + dir * 8, this.player.y, dir));
     }
 
@@ -474,6 +516,7 @@ export class GameScene extends Scene {
 
     /** Award one coin (score + counter) — shared by pickups and bumped blocks. */
     private collectCoin(): void {
+        this.audio.play('coin');
         this.addScore(COIN_SCORE);
         // Every COINS_PER_1UP coins earns a 1-UP, then the counter rolls over.
         const coins = (this.registry.get('coins') as number) + 1;
@@ -487,6 +530,7 @@ export class GameScene extends Scene {
 
     /** Grant an extra life and float a little "1UP" where it was earned. */
     private grantOneUp(x?: number, y?: number): void {
+        this.audio.play('oneup');
         this.registry.set('lives', (this.registry.get('lives') as number) + 1);
         const px = x ?? this.player.x;
         const py = y ?? this.player.y;
@@ -513,6 +557,8 @@ export class GameScene extends Scene {
             return;
         }
         this.resetting = true;
+        this.audio.stopMusic();
+        this.audio.play('die');
         this.player.kill();
         this.cameras.main.stopFollow();
 
@@ -527,13 +573,17 @@ export class GameScene extends Scene {
         });
     }
 
-    /** Out of lives: wipe the run state, show GAME OVER, then start over fresh. */
+    /** Out of lives: wipe the run state, show GAME OVER, then back to the title. */
     private gameOver(): void {
         this.registry.set('score', 0);
         this.registry.set('coins', 0);
         this.registry.set('lives', START_LIVES);
+        this.audio.stopMusic();
         this.showBanner('GAME OVER');
-        this.time.delayedCall(2500, () => this.scene.restart());
+        this.time.delayedCall(2500, () => {
+            this.scene.stop('UI');
+            this.scene.start('Title');
+        });
     }
 
     /**
@@ -574,6 +624,8 @@ export class GameScene extends Scene {
             return;
         }
         this.levelComplete = true;
+        this.audio.stopMusic();
+        this.audio.play('flag');
 
         // Hand Mario over to the tweens: stop physics, snap him onto the pole.
         const body = this.player.body as Phaser.Physics.Arcade.Body;
@@ -618,6 +670,7 @@ export class GameScene extends Scene {
 
     /** Convert remaining time into bonus points, celebrate, then loop the course. */
     private levelCleared(): void {
+        this.audio.play('clear');
         const time = this.registry.get('time') as number;
         if (time > 0) {
             this.addScore(time * TIME_BONUS);

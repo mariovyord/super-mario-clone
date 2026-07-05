@@ -96,6 +96,8 @@ export class Player extends Physics.Arcade.Sprite {
             this.jumpBufferMs = 0;
             this.coyoteMs = 0;
             this.cutApplied = false;
+            // Signal for the scene to play the jump sfx — Player stays audio-free.
+            this.emit('jump');
         }
 
         // --- Variable height: releasing jump while still rising cuts the ascent ---

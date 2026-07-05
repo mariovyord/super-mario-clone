@@ -11,7 +11,7 @@ export class PreloadScene extends Scene {
     }
 
     create() {
-        // No assets to load for the MVP. Start the game and its parallel HUD.
-        this.scene.start('Game');
+        // No assets to load for the MVP. Head to the title screen.
+        this.scene.start('Title');
     }
 }

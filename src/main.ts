@@ -2,8 +2,10 @@ import { AUTO, Game, Scale } from 'phaser';
 import { GAME_WIDTH, GAME_HEIGHT, ZOOM, GRAVITY_Y } from './config/constants';
 import { BootScene } from './scenes/BootScene';
 import { PreloadScene } from './scenes/PreloadScene';
+import { TitleScene } from './scenes/TitleScene';
 import { GameScene } from './scenes/GameScene';
 import { UIScene } from './scenes/UIScene';
+import { PauseScene } from './scenes/PauseScene';
 
 const config: Phaser.Types.Core.GameConfig = {
     type: AUTO,
@@ -35,7 +37,7 @@ const config: Phaser.Types.Core.GameConfig = {
         },
     },
 
-    scene: [BootScene, PreloadScene, GameScene, UIScene],
+    scene: [BootScene, PreloadScene, TitleScene, GameScene, UIScene, PauseScene],
 };
 
 const game = new Game(config);
