@@ -12,8 +12,9 @@
 ## When you start building (Milestone 0 = scaffold)
 Follow the decisions already committed in `docs/PLAN.md`; don't re-derive them. The
 constraints most likely to be violated:
-- Stack is **Phaser 3.90 + TypeScript + Vite** (Arcade physics). Use Phaser **3.90,
-  not v4** — the 3.x pin is deliberate (v4 is still RC). See §2.
+- Stack is **Phaser 4.0.0 + TypeScript + Vite** (Arcade physics). Use Phaser **4.0.0**
+  — v4 is released and the earlier "3.90, not v4" pin is superseded (see §2, §13).
+  The bundled `.opencode/skills/` are written for Phaser 4.
 - **Never read input in entity code.** Entities consume a `PlayerIntent` through an
   `InputController` seam; this is the thing that keeps mobile support additive
   later, so don't bypass it (§4, §12).
@@ -21,9 +22,10 @@ constraints most likely to be violated:
   load-bearing for consistent game feel, not optional (§4, §8).
 - Stomp detection uses `collider` + `body.touching`, never a bare `overlap`
   (§4, §10).
-- Scaffolding runs into a **non-empty dir** (`docs/`, `.git/`): `npm create
-  vite@latest .` prompts *"Current directory is not empty…"* — choose **"Ignore
-  files and continue"** so `docs/PLAN.md` is not deleted (§11).
+- Scaffolding runs into a **non-empty dir** (`docs/`, `.git/`). We use the official
+  Phaser Vite+TS template via `degit`, which refuses non-empty dirs and has **no**
+  "ignore files" prompt: scaffold into a **temp dir, then move files into the repo
+  root**, never touching `docs/` or `.git/` so `docs/PLAN.md` survives (§11).
 
 ## Conventions
 - Commits: short, lowercase, with a conventional `type:` prefix (e.g. `docs: …`).

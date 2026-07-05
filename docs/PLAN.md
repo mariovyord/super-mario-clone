@@ -26,7 +26,7 @@ with a **core-mechanics MVP** and expanding toward a faithful recreation.
 
 | Concern        | Choice                          | Why |
 |----------------|---------------------------------|-----|
-| Game framework | **Phaser 3** (v3.90)            | Built-in Arcade Physics, sprites, tilemaps, input, animations. |
+| Game framework | **Phaser 4** (v4.0.0)           | Built-in Arcade Physics, sprites, tilemaps, input, animations. |
 | Language       | **TypeScript**                  | Type safety for entities, states, and configs. |
 | Build tool     | **Vite**                        | Fast dev server, HMR, simple TS + asset bundling. |
 | Physics        | **Arcade Physics** (Phaser)     | AABB physics — ideal for a platformer, cheap and predictable. |
@@ -219,7 +219,7 @@ These are the levers for "game feel." We tune them by playtesting, not by spec.
 Scope for v1 = **Core mechanics MVP** (Milestones 0–3). Everything after is stretch.
 
 ### Milestone 0 — Project setup
-- [ ] Scaffold Vite + TS + Phaser 3.90, `index.html`, `main.ts`, game config.
+- [ ] Scaffold Vite + TS + Phaser 4.0.0, `index.html`, `main.ts`, game config.
 - [ ] Native resolution **256×240** (NES viewport), `zoom: 3`, `pixelArt: true`, `roundPixels: true` — no smoothing.
 - [ ] Scale Manager: `Scale.FIT` + `CENTER_BOTH` + resize handling, so the canvas already adapts to any window/mobile viewport (renderer stays device-agnostic).
 - [ ] Empty GameScene renders a background color at a stable 60 FPS.
@@ -267,21 +267,31 @@ Scope for v1 = **Core mechanics MVP** (Milestones 0–3). Everything after is st
 
 ## 11. Getting Started (once we implement)
 
-> ⚠️ This repo already contains `docs/` and `.git/`. Scaffolding into a non-empty
-> directory prompts *"Current directory is not empty…"* — choose **"Ignore files
-> and continue"** so `docs/PLAN.md` is preserved. Do **not** pick the option that
-> removes existing files.
+**Chosen path:** Phaser's official **Vite + TS template**, whose `main` branch now
+ships **Phaser 4.0.0** (Vite 6.3.1, TypeScript 5.7.2) — so no version pinning is
+needed; scaffolding from `main` gives us Phaser 4 directly.
+
+> ⚠️ This repo already contains `docs/` and `.git/`. `degit` refuses to write into a
+> non-empty directory and has **no** *"ignore files"* prompt. Scaffold into a **temp
+> dir, then move files into the repo root**, never touching `docs/` or `.git/`, so
+> `docs/PLAN.md` is preserved.
 
 ```bash
-# Option A — vanilla starter, then add Phaser (explicit, full control):
-npm create vite@latest . -- --template vanilla-ts
-npm install phaser
+# Official Phaser Vite + TS template (Phaser 4.0.0) — scaffold via a temp dir:
+npx degit phaserjs/template-vite-ts .scaffold-tmp
+# then move everything except docs/ and .git/ into the repo root, and:
+rm -rf .scaffold-tmp
 
-# Option B — Phaser's official Vite + TS template (preconfigured, less wiring):
-#   npx degit phaserjs/template-vite-ts .
+npm install
+npm run dev   # dev server on http://localhost:8080
 
-npm run dev
+# Note: remove the template's `log.js` phone-home and strip it from package.json
+# scripts (use the plain `vite` / `vite build` commands).
 ```
+
+> Alternative (not chosen): a vanilla starter + explicit install —
+> `npm create vite@latest . -- --template vanilla-ts` (choose *"Ignore files and
+> continue"* to preserve `docs/`) then `npm install phaser`.
 
 Definition of done for MVP: Mario runs, jumps (with good feel), traverses an
 authored slice of 1-1, stomps a Goomba, collects a coin, and the HUD updates —
@@ -310,6 +320,7 @@ Net effect: the MVP ships keyboard-only; mobile later is *additive*, not a rewri
 ---
 
 ## 13. Decisions (resolved)
+- **Game framework / version:** ✅ **Phaser 4.0.0** (supersedes the earlier "Phaser 3.90, not v4" pin). The original pin existed only because v4 was still RC; v4.0.0 is now released, the official Vite+TS template ships it on `main`, and the bundled `.opencode/skills/` are written for Phaser 4. Every MVP-critical API (Arcade physics `fps: 60, fixedStep: true`, `body.touching` stomp, `Graphics.generateTexture`, `createCursorKeys`/`addKeys`/`JustDown`, Scale `FIT`+`CENTER_BOTH`, `pixelArt`/`roundPixels`/`zoom`) is unchanged from v3 — only the renderer internals (Pipelines→RenderNodes, FX→Filters) changed, none of which the MVP touches.
 - **Resolution / zoom:** ✅ Native **256×240** (NES viewport, 16×15 tiles @ `TILE=16`), `zoom: 3` → 768×720 window, with `Scale.FIT` + `CENTER_BOTH` so it also fits mobile/arbitrary viewports.
 - **Level representation:** ✅ Start with the **authored array** (Option A) for the MVP; migrate to **Tiled** (Option B) at Milestone 4 behind the same `TileMapBuilder` interface. Don't pull Tiled forward.
 - **Physics faithfulness:** ✅ **"Close enough" + fixed timestep.** Frame-accurate SMB (subpixel accel tables, momentum quirks) is a deep rabbit hole with little MVP payoff; revisit only if the tuning pass disappoints.
