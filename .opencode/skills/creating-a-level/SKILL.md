@@ -13,7 +13,7 @@ description: "Use this skill when creating, authoring, editing, or adding a new 
 > grid/physics constraints, and register it. No new art or code is required for a
 > standard horizontal course.
 
-**Key source paths:** `src/level/level-1-1.ts` (the reference course + legend), `src/level/TileMapBuilder.ts` (parser → `LevelBuildResult`), `src/scenes/GameScene.ts` (`create()` spawns everything; `levelCleared()` win path), `src/config/constants.ts` (`TILE`, `GAME_HEIGHT`, jump/gravity), `src/scenes/BootScene.ts` (placeholder texture keys)
+**Key source paths:** `src/level/level-1-1.ts` (the reference course + legend), `src/level/levels.ts` (the `LEVELS` registry you append to), `src/level/TileMapBuilder.ts` (parser → `LevelBuildResult`), `src/scenes/GameScene.ts` (`create()` picks the course + spawns everything; `levelCleared()` win path), `src/config/constants.ts` (`TILE`, `GAME_HEIGHT`, jump/gravity), `src/scenes/BootScene.ts` (placeholder texture keys)
 **Related references:** `docs/LEVELS_PLAN.md` (multi-level progression plan), `docs/PLAN.md` §7 (level design rationale), `../physics-arcade/SKILL.md`, `../tilemaps/SKILL.md`
 
 ---
@@ -45,10 +45,10 @@ export const LEVEL_1_2: string[] = [
 ];
 ```
 
-2. Verify it loads. **Today** `GameScene` imports one course directly
-   (`GameScene.ts:14,93`); to test a new one quickly, swap that import. The
-   proper multi-level wiring (a `LEVELS` registry you append to) is specified in
-   `docs/LEVELS_PLAN.md` — prefer that once it lands.
+2. Register it: add `import { LEVEL_1_2 } from './level-1-2';` to
+   `src/level/levels.ts` and append `{ name: '1-2', rows: LEVEL_1_2 }` to the
+   `LEVELS` array (optionally with a `backgroundColor`). `GameScene` picks the
+   course by `levelIndex` at runtime — see **Registering a level** below.
 
 3. `npm run typecheck && npm run build`, then `npm run dev` (port 8080) and play
    it start-to-flag.
@@ -124,6 +124,29 @@ A power-up block packed between question blocks (`B?U?B`) is reachable: the bonk
 is redirected to the block directly over Mario's head (`blockOverHead`,
 `GameScene.ts:327`). You can author dense block runs freely.
 
+### Enemy behaviour (where it's safe to place `G`/`K`)
+Goombas and Koopas share the same patrol AI (`Goomba.ts:34`, `Koopa.ts:104`), so
+placement is forgiving:
+- **They turn at both walls and ledges.** Each frame they reverse on
+  `body.blocked.left/right` (a wall) *and* on an `atLedge` probe that samples for
+  a solid tile just past the leading foot (`Goomba.ts:93`, `Koopa.ts:207`). A
+  **patrolling** enemy therefore never walks off a platform — it paces back and
+  forth on whatever solid run it stands on. Placing a `G`/`K` one tile from a pit
+  edge is safe; it just turns around there.
+- **But they must _spawn_ on solid ground.** The turn only fires when
+  `body.blocked.down` is true. A `G`/`K` authored directly **over** a pit (no `X`
+  under it) is airborne at spawn, never "grounded", so it falls straight in.
+  Always put a floor tile under every enemy marker.
+- **They start walking left** (`dir = -1`). Face this when timing an enemy near
+  the level start.
+- **A _kicked_ Koopa shell does _not_ turn at ledges** — sliding only ricochets
+  off walls (`Koopa.ts:88`), so a shell can rocket off a platform into a pit.
+  Don't rely on shells staying on a ledge.
+- **Same-type enemies pass through each other.** There's no goomba↔goomba or
+  koopa↔koopa collider, and goomba↔koopa is an `overlap` (only a *sliding* shell
+  kills a Goomba), so crowding several `G`/`K` on one platform is fine — they
+  overlap rather than jam. (Colliders/overlaps are wired in `GameScene.ts:176-194`.)
+
 ---
 
 ## How a level becomes a running scene (data flow)
@@ -149,14 +172,44 @@ flagpole+trigger+castle · colliders & overlaps · camera follow
 
 ## Registering a level
 
-- **Current state:** `GameScene.ts:14` imports `LEVEL_1_1` and builds it at
-  `:93`. A single course is wired directly.
-- **Target (see `docs/LEVELS_PLAN.md`):** a `src/level/levels.ts` exporting
-  `LEVELS: LevelDefinition[]`. Adding a course = create `level-X-Y.ts`, then
-  append `{ name: 'X-Y', rows: LEVEL_X_Y }` to `LEVELS`. Progression
-  (advance-on-win, the `WORLD` label, per-level background) is handled there via
-  the `levelIndex` / `world` **registry** keys — do not add cross-scene calls;
-  the registry is the only channel (`AGENTS.md`).
+Courses live in a registry — `src/level/levels.ts` exports
+`LEVELS: LevelDefinition[]`, and `GameScene` builds `LEVELS[levelIndex]`. Adding
+a course is data-only:
+
+```ts
+// src/level/levels.ts
+export interface LevelDefinition {
+    name: string;             // HUD/title label, e.g. "1-2"
+    rows: string[];           // the authored tile rows
+    backgroundColor?: string; // optional per-level sky; defaults to SMB blue
+}
+
+export const LEVELS: LevelDefinition[] = [
+    { name: '1-1', rows: LEVEL_1_1 },
+    { name: '1-2', rows: LEVEL_1_2, backgroundColor: '#6ab0ff' },
+    // append here — array order **is** play order
+];
+```
+
+**Progression is registry-driven** (never cross-scene calls — the registry is
+the only channel, per `AGENTS.md`):
+- First boot seeds `levelIndex: 0` (guarded by `lives === undefined`,
+  `GameScene.ts:88`). `create()` reads it, builds `LEVELS[index]`, and publishes
+  `world = def.name` (the HUD + Title read this key) and the camera background
+  from `def.backgroundColor ?? '#5c94fc'` (`GameScene.ts:98-103`).
+- Reaching the flag runs `levelCleared()` (`GameScene.ts:754`): it bumps
+  `levelIndex` and `scene.restart()`s onto the next course, **or**, after the
+  **last** entry, runs the victory path. So the final course in `LEVELS` is
+  automatically the finale — no flag needed to mark it.
+- `returnToTitle()` (game over / victory) resets `levelIndex` to 0
+  (`GameScene.ts:653`).
+
+Practical notes:
+- **Order = progression.** Put courses in the order you want them played.
+- **`backgroundColor`** is the only built-in theming knob (a CSS hex string).
+  Anything richer is a Phase 2 code change (`docs/LEVELS_PLAN.md`), not an asset.
+- You never touch scene wiring or colliders to add a level — only `levels.ts`
+  and the new `level-X-Y.ts`.
 
 ---
 
@@ -169,10 +222,25 @@ Before considering a level done:
 - [ ] Exactly **one `M`**; both **`F`** and **`C`** present, `C` right of `F`.
 - [ ] Every jump, climb, and pit is clearable (played it through).
 - [ ] Only legend characters used (stray chars are ignored, not errored).
-- [ ] Enemies have floor under them (a `G`/`K` over a pit walks straight off).
+- [ ] Every enemy marker (`G`/`K`) has a solid tile (`X`/`P`) **directly below
+      it** — patrolling enemies turn at ledges, but one *spawned* over a pit
+      falls straight in.
 - [ ] Blocks/`?`/`U`/`L` sit in mid-air rows Mario can bonk from below.
 - [ ] `npm run typecheck` clean, `npm run build` succeeds.
-- [ ] Registered (import swapped now, or added to `LEVELS` post-plan).
+- [ ] Added to `LEVELS` in `src/level/levels.ts` (import + array entry).
+
+Most structural checks are scripted — run the bundled validator over your file
+(or every level) before playtesting:
+
+```bash
+node .opencode/skills/creating-a-level/scripts/validate-level.mjs src/level/level-1-2.ts
+node .opencode/skills/creating-a-level/scripts/validate-level.mjs   # all levels
+```
+
+It parses the quoted rows straight out of the `.ts` and checks: 15 rows, uniform
+width, exactly one `M`/`F`/`C`, `F` left of `C`, pits aligned across **both**
+ground rows, and a floor under every `G`/`K`/`M`/`C`. It can't judge jump feel —
+**still play it through**.
 
 ## Common mistakes
 
