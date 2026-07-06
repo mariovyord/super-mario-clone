@@ -64,7 +64,7 @@ export class GameScene extends Scene {
     private groundSurfaceY = 0;
     /** The pennant on the flagpole — slides down with Mario during the cutscene. */
     private flagPennant?: Phaser.GameObjects.Image;
-    /** The centred overlay message (COURSE CLEAR! / GAME OVER / …), if shown. */
+    /** The centred overlay message (LEVEL COMPLETE! / GAME OVER / …), if shown. */
     private banner?: Phaser.GameObjects.Text;
     /** Shared procedural audio engine (Milestone 8). */
     private readonly audio = getAudio();
@@ -760,7 +760,7 @@ export class GameScene extends Scene {
         }
 
         const next = (this.registry.get('levelIndex') as number) + 1;
-        this.showBanner('COURSE CLEAR!');
+        this.showBanner('LEVEL COMPLETE!');
         this.time.delayedCall(3000, () => {
             if (next >= LEVELS.length) {
                 this.victory(); // cleared the final course
@@ -773,7 +773,7 @@ export class GameScene extends Scene {
 
     /**
      * Center a big message fixed to the viewport, replacing any prior banner so
-     * a sequence (e.g. COURSE CLEAR! → THANK YOU!) never overlaps.
+     * a sequence (e.g. LEVEL COMPLETE! → THANK YOU!) never overlaps.
      */
     private showBanner(text: string): void {
         const cam = this.cameras.main;
