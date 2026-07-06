@@ -1,4 +1,5 @@
 import { LEVEL_1_1 } from './level-1-1';
+import { LEVEL_1_2 } from './level-1-2';
 
 /**
  * A single playable course: a display label, the authored tile rows (see the
@@ -22,4 +23,5 @@ export interface LevelDefinition {
  */
 export const LEVELS: LevelDefinition[] = [
     { name: '1-1', rows: LEVEL_1_1 },
+    { name: '1-2', rows: LEVEL_1_2, backgroundColor: '#6ab0ff' },
 ];
