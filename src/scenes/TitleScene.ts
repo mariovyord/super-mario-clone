@@ -1,5 +1,6 @@
 import { Scene } from 'phaser';
 import { GAME_WIDTH, GAME_HEIGHT } from '../config/constants';
+import { LEVELS } from '../level/levels';
 import { getAudio } from '../systems/audio/AudioBus';
 
 /**
@@ -28,7 +29,7 @@ export class TitleScene extends Scene {
             })
             .setOrigin(0.5);
         this.add
-            .text(cx, GAME_HEIGHT * 0.6, 'WORLD 1-1', {
+            .text(cx, GAME_HEIGHT * 0.6, `WORLD ${LEVELS[0].name}`, {
                 fontFamily: 'monospace',
                 fontSize: '10px',
                 color: '#ffe08a',

@@ -11,7 +11,7 @@ import { CompositeController } from '../systems/input/CompositeController';
 import { TouchController } from '../systems/input/TouchController';
 import type { InputController } from '../systems/input/InputController';
 import { getAudio } from '../systems/audio/AudioBus';
-import { LEVEL_1_1 } from '../level/level-1-1';
+import { LEVELS } from '../level/levels';
 import { TileMapBuilder } from '../level/TileMapBuilder';
 import {
     TILE,
@@ -64,6 +64,8 @@ export class GameScene extends Scene {
     private groundSurfaceY = 0;
     /** The pennant on the flagpole — slides down with Mario during the cutscene. */
     private flagPennant?: Phaser.GameObjects.Image;
+    /** The centred overlay message (COURSE CLEAR! / GAME OVER / …), if shown. */
+    private banner?: Phaser.GameObjects.Text;
     /** Shared procedural audio engine (Milestone 8). */
     private readonly audio = getAudio();
 
@@ -75,22 +77,33 @@ export class GameScene extends Scene {
         this.resetting = false;
         this.levelComplete = false;
         this.timeAccumMs = 0;
+        // Cleared on every (re)build so a flag-less course can't inherit a stale
+        // (destroyed) reference across a scene.restart().
+        this.flagPennant = undefined;
+        this.banner = undefined;
 
-        // Persistent run state (score, coins, lives) survives death restarts —
-        // it lives in the registry, so we only seed it on the very first boot.
-        // The per-attempt countdown timer resets on every (re)start.
+        // Persistent run state (score, coins, lives, level) survives death
+        // restarts — it lives in the registry, so we only seed it on the very
+        // first boot. The per-attempt countdown timer resets on every (re)start.
         if (this.registry.get('lives') === undefined) {
             this.registry.set('score', 0);
             this.registry.set('coins', 0);
             this.registry.set('lives', START_LIVES);
+            this.registry.set('levelIndex', 0);
         }
         this.registry.set('time', START_TIME);
 
-        // Classic SMB 1-1 sky blue.
-        this.cameras.main.setBackgroundColor('#5c94fc');
+        // Pick the current course from the progression index. A death restart
+        // keeps the same index (retry); the flagpole advances it (levelCleared).
+        const index = this.registry.get('levelIndex') as number;
+        const def = LEVELS[index];
+        this.registry.set('world', def.name); // HUD + title read this label.
+
+        // Per-level sky colour (defaults to the classic SMB 1-1 blue).
+        this.cameras.main.setBackgroundColor(def.backgroundColor ?? '#5c94fc');
 
         // Build the authored level: static solids + spawn data.
-        const level = new TileMapBuilder(this, LEVEL_1_1).build();
+        const level = new TileMapBuilder(this, def.rows).build();
 
         // The camera is clamped to the level, but the physics world extends below
         // it so Mario can actually fall *through* a pit (rather than parking on
@@ -623,12 +636,28 @@ export class GameScene extends Scene {
 
     /** Out of lives: wipe the run state, show GAME OVER, then back to the title. */
     private gameOver(): void {
+        this.returnToTitle('GAME OVER', 2500);
+    }
+
+    /** Cleared the final course: celebrate, wipe the run state, back to the title. */
+    private victory(): void {
+        this.returnToTitle('THANK YOU!', 3500);
+    }
+
+    /**
+     * Shared end-of-run teardown (game over or final victory): reset the
+     * persistent run state — including the progression index, so the next run
+     * starts at the first course — hush the music, show a banner, then drop the
+     * overlays and return to the title.
+     */
+    private returnToTitle(banner: string, delayMs: number): void {
         this.registry.set('score', 0);
         this.registry.set('coins', 0);
         this.registry.set('lives', START_LIVES);
+        this.registry.set('levelIndex', 0);
         this.audio.stopMusic();
-        this.showBanner('GAME OVER');
-        this.time.delayedCall(2500, () => {
+        this.showBanner(banner);
+        this.time.delayedCall(delayMs, () => {
             this.scene.stop('UI');
             this.scene.stop('Touch');
             this.scene.start('Title');
@@ -717,7 +746,11 @@ export class GameScene extends Scene {
         });
     }
 
-    /** Convert remaining time into bonus points, celebrate, then loop the course. */
+    /**
+     * Convert remaining time into bonus points, celebrate, then advance: rebuild
+     * at the next course, or run the victory path after the final one. The run
+     * state (score/coins/lives) persists across the restart.
+     */
     private levelCleared(): void {
         this.audio.play('clear');
         const time = this.registry.get('time') as number;
@@ -725,15 +758,27 @@ export class GameScene extends Scene {
             this.addScore(time * TIME_BONUS);
             this.registry.set('time', 0);
         }
+
+        const next = (this.registry.get('levelIndex') as number) + 1;
         this.showBanner('COURSE CLEAR!');
-        // The run state (score/coins/lives) persists across the restart.
-        this.time.delayedCall(3000, () => this.scene.restart());
+        this.time.delayedCall(3000, () => {
+            if (next >= LEVELS.length) {
+                this.victory(); // cleared the final course
+            } else {
+                this.registry.set('levelIndex', next);
+                this.scene.restart(); // rebuilds GameScene with the new index
+            }
+        });
     }
 
-    /** Center a big message fixed to the viewport (score/timer overlays). */
+    /**
+     * Center a big message fixed to the viewport, replacing any prior banner so
+     * a sequence (e.g. COURSE CLEAR! → THANK YOU!) never overlaps.
+     */
     private showBanner(text: string): void {
         const cam = this.cameras.main;
-        this.add
+        this.banner?.destroy();
+        this.banner = this.add
             .text(cam.width / 2, cam.height / 2, text, {
                 fontFamily: 'monospace',
                 fontSize: '16px',

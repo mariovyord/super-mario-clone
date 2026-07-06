@@ -14,6 +14,7 @@ export class UIScene extends Scene {
     private coinText!: Phaser.GameObjects.Text;
     private livesText!: Phaser.GameObjects.Text;
     private timeText!: Phaser.GameObjects.Text;
+    private worldText!: Phaser.GameObjects.Text;
 
     constructor() {
         super('UI');
@@ -36,9 +37,9 @@ export class UIScene extends Scene {
         this.add.image(84, 23, 'mario').setScale(0.7);
         this.livesText = this.add.text(92, 18, '', font);
 
-        // Centre: the world label.
+        // Centre: the world label (the "1-1" reflects the current course).
         this.add.text(150, 8, 'WORLD', font);
-        this.add.text(158, 18, '1-1', font);
+        this.worldText = this.add.text(158, 18, '', font);
 
         // Right: the SMB countdown timer.
         this.add.text(206, 8, 'TIME', font);
@@ -51,11 +52,13 @@ export class UIScene extends Scene {
         this.registry.events.on('changedata-coins', this.refresh, this);
         this.registry.events.on('changedata-lives', this.refresh, this);
         this.registry.events.on('changedata-time', this.refresh, this);
+        this.registry.events.on('changedata-world', this.refresh, this);
         this.events.once('shutdown', () => {
             this.registry.events.off('changedata-score', this.refresh, this);
             this.registry.events.off('changedata-coins', this.refresh, this);
             this.registry.events.off('changedata-lives', this.refresh, this);
             this.registry.events.off('changedata-time', this.refresh, this);
+            this.registry.events.off('changedata-world', this.refresh, this);
         });
     }
 
@@ -65,9 +68,11 @@ export class UIScene extends Scene {
         const coins = (this.registry.get('coins') as number) ?? 0;
         const lives = (this.registry.get('lives') as number) ?? 0;
         const time = (this.registry.get('time') as number) ?? 0;
+        const world = (this.registry.get('world') as string) ?? '1-1';
         this.scoreText.setText(String(score).padStart(6, '0'));
         this.coinText.setText('x' + String(coins).padStart(2, '0'));
         this.livesText.setText('x' + String(lives));
         this.timeText.setText(String(time).padStart(3, '0'));
+        this.worldText.setText(world);
     }
 }
