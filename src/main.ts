@@ -7,6 +7,9 @@ import { GameScene } from './scenes/GameScene';
 import { UIScene } from './scenes/UIScene';
 import { PauseScene } from './scenes/PauseScene';
 import { TouchControlsScene } from './scenes/TouchControlsScene';
+import { LevelIntroScene } from './scenes/LevelIntroScene';
+import { GameOverScene } from './scenes/GameOverScene';
+import { EndingScene } from './scenes/EndingScene';
 
 const config: Phaser.Types.Core.GameConfig = {
     type: AUTO,
@@ -38,7 +41,21 @@ const config: Phaser.Types.Core.GameConfig = {
         },
     },
 
-    scene: [BootScene, PreloadScene, TitleScene, GameScene, UIScene, PauseScene, TouchControlsScene],
+    // Solo front-end scenes are appended after the parallel overlays (UI, Pause,
+    // Touch) so the overlays' render order is undisturbed. LevelIntro / GameOver
+    // / Ending each own the whole screen, so their list position doesn't matter.
+    scene: [
+        BootScene,
+        PreloadScene,
+        TitleScene,
+        GameScene,
+        UIScene,
+        PauseScene,
+        TouchControlsScene,
+        LevelIntroScene,
+        GameOverScene,
+        EndingScene,
+    ],
 };
 
 const game = new Game(config);

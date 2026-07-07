@@ -2,6 +2,7 @@ import { Scene } from 'phaser';
 import { GAME_WIDTH, GAME_HEIGHT } from '../config/constants';
 import { LEVELS } from '../level/levels';
 import { getAudio } from '../systems/audio/AudioBus';
+import { resetRunState } from '../systems/runState';
 
 /**
  * TitleScene is the front-end shown before play (PLAN.md §9, Milestone 8). It
@@ -17,6 +18,11 @@ export class TitleScene extends Scene {
     create() {
         const cx = GAME_WIDTH / 2;
         this.cameras.main.setBackgroundColor('#5c94fc');
+
+        // The title is the one true "fresh start": clear any leftover run state
+        // from a finished game so a new playthrough begins at World 1-1 with a
+        // full stock of lives and a zeroed score.
+        resetRunState(this.registry);
 
         // Mascot + title block.
         this.add.image(cx, GAME_HEIGHT * 0.3, 'marioBig').setScale(2);
@@ -65,6 +71,6 @@ export class TitleScene extends Scene {
 
     private startGame(): void {
         getAudio().play('coin'); // little confirmation blip
-        this.scene.start('Game');
+        this.scene.start('LevelIntro');
     }
 }

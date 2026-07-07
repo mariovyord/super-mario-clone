@@ -11,6 +11,7 @@ import { CompositeController } from '../systems/input/CompositeController';
 import { TouchController } from '../systems/input/TouchController';
 import type { InputController } from '../systems/input/InputController';
 import { getAudio } from '../systems/audio/AudioBus';
+import { resetRunState } from '../systems/runState';
 import { LEVELS } from '../level/levels';
 import { TileMapBuilder } from '../level/TileMapBuilder';
 import {
@@ -22,7 +23,6 @@ import {
     SHELL_KICK_SCORE,
     FIREBALL_MAX,
     RESPAWN_DELAY_MS,
-    START_LIVES,
     START_TIME,
     TIME_TICK_MS,
     TIME_BONUS,
@@ -83,13 +83,11 @@ export class GameScene extends Scene {
         this.banner = undefined;
 
         // Persistent run state (score, coins, lives, level) survives death
-        // restarts — it lives in the registry, so we only seed it on the very
-        // first boot. The per-attempt countdown timer resets on every (re)start.
+        // restarts — it lives in the registry, seeded once by the title screen.
+        // As a safety net for a direct GameScene boot (dev), seed it here too.
+        // The per-attempt countdown timer resets on every (re)start.
         if (this.registry.get('lives') === undefined) {
-            this.registry.set('score', 0);
-            this.registry.set('coins', 0);
-            this.registry.set('lives', START_LIVES);
-            this.registry.set('levelIndex', 0);
+            resetRunState(this.registry);
         }
         this.registry.set('time', START_TIME);
 
@@ -629,39 +627,33 @@ export class GameScene extends Scene {
             if (lives <= 0) {
                 this.gameOver();
             } else {
-                this.scene.restart();
+                this.leaveTo('LevelIntro'); // re-show the WORLD card, then retry
             }
         });
     }
 
-    /** Out of lives: wipe the run state, show GAME OVER, then back to the title. */
+    /** Out of lives: hand off to the GAME OVER screen (it returns to the title). */
     private gameOver(): void {
-        this.returnToTitle('GAME OVER', 2500);
+        this.leaveTo('GameOver');
     }
 
-    /** Cleared the final course: celebrate, wipe the run state, back to the title. */
+    /** Cleared the final course: roll the ending screen, then back to the title. */
     private victory(): void {
-        this.returnToTitle('THANK YOU!', 3500);
+        this.leaveTo('Ending');
     }
 
     /**
-     * Shared end-of-run teardown (game over or final victory): reset the
-     * persistent run state — including the progression index, so the next run
-     * starts at the first course — hush the music, show a banner, then drop the
-     * overlays and return to the title.
+     * Leave GameScene for a full-screen front-end scene (LevelIntro / GameOver /
+     * Ending). The HUD + touch overlays run in *parallel*, so swapping GameScene
+     * doesn't stop them — we drop them here, and GameScene relaunches them when
+     * it next builds. Run state is left intact in the registry for the target to
+     * read (the WORLD card and the score screens); the title screen resets it.
      */
-    private returnToTitle(banner: string, delayMs: number): void {
-        this.registry.set('score', 0);
-        this.registry.set('coins', 0);
-        this.registry.set('lives', START_LIVES);
-        this.registry.set('levelIndex', 0);
+    private leaveTo(key: string): void {
         this.audio.stopMusic();
-        this.showBanner(banner);
-        this.time.delayedCall(delayMs, () => {
-            this.scene.stop('UI');
-            this.scene.stop('Touch');
-            this.scene.start('Title');
-        });
+        this.scene.stop('UI');
+        this.scene.stop('Touch');
+        this.scene.start(key);
     }
 
     /**
@@ -766,7 +758,7 @@ export class GameScene extends Scene {
                 this.victory(); // cleared the final course
             } else {
                 this.registry.set('levelIndex', next);
-                this.scene.restart(); // rebuilds GameScene with the new index
+                this.leaveTo('LevelIntro'); // WORLD card, then the next course
             }
         });
     }
