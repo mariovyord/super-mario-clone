@@ -19,6 +19,7 @@ export class GameOverScene extends Scene {
         this.done = false;
         const cx = GAME_WIDTH / 2;
         this.cameras.main.setBackgroundColor('#000000');
+        this.cameras.main.fadeIn(300, 0, 0, 0);
 
         const score = (this.registry.get('score') as number) ?? 0;
 
@@ -53,6 +54,7 @@ export class GameOverScene extends Scene {
             return;
         }
         this.done = true;
-        this.scene.start('Title');
+        this.cameras.main.fadeOut(300, 0, 0, 0);
+        this.cameras.main.once('camerafadeoutcomplete', () => this.scene.start('Title'));
     }
 }

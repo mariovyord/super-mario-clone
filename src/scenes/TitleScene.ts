@@ -11,13 +11,17 @@ import { resetRunState } from '../systems/runState';
  * so audio is unlocked by the time the level begins.
  */
 export class TitleScene extends Scene {
+    private started = false;
+
     constructor() {
         super('Title');
     }
 
     create() {
+        this.started = false;
         const cx = GAME_WIDTH / 2;
         this.cameras.main.setBackgroundColor('#5c94fc');
+        this.cameras.main.fadeIn(300, 0, 0, 0);
 
         // The title is the one true "fresh start": clear any leftover run state
         // from a finished game so a new playthrough begins at World 1-1 with a
@@ -52,6 +56,15 @@ export class TitleScene extends Scene {
             .setOrigin(0.5);
         this.tweens.add({ targets: prompt, alpha: 0.15, duration: 550, yoyo: true, repeat: -1 });
 
+        // One-line "how to play": the objective, then the controls beneath it.
+        this.add
+            .text(cx, GAME_HEIGHT * 0.84, 'GOAL: DODGE ENEMIES, CLEAR THE PITS, REACH THE FLAG', {
+                fontFamily: 'monospace',
+                fontSize: '7px',
+                color: '#bfe0ff',
+            })
+            .setOrigin(0.5);
+
         this.add
             .text(cx, GAME_HEIGHT * 0.9, 'ARROWS MOVE   Z JUMP   X RUN/FIRE   P PAUSE', {
                 fontFamily: 'monospace',
@@ -70,7 +83,12 @@ export class TitleScene extends Scene {
     }
 
     private startGame(): void {
+        if (this.started) {
+            return; // ignore a second key/tap while the fade is already running
+        }
+        this.started = true;
         getAudio().play('coin'); // little confirmation blip
-        this.scene.start('LevelIntro');
+        this.cameras.main.fadeOut(300, 0, 0, 0);
+        this.cameras.main.once('camerafadeoutcomplete', () => this.scene.start('LevelIntro'));
     }
 }

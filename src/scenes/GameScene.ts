@@ -193,6 +193,8 @@ export class GameScene extends Scene {
 
         // Camera tracks Mario (roundPixels keeps the pixel-art crisp).
         this.cameras.main.startFollow(this.player, true);
+        // Ease the course in from black (pairs with the LevelIntro fade-out).
+        this.cameras.main.fadeIn(300, 0, 0, 0);
 
         // HUD overlay runs in parallel on top of this scene.
         if (!this.scene.isActive('UI')) {
@@ -596,7 +598,10 @@ export class GameScene extends Scene {
         const label = this.add
             .text(px, py, '1UP', { fontFamily: 'monospace', fontSize: '8px', color: '#2ecc40' })
             .setOrigin(0.5)
-            .setDepth(20);
+            .setDepth(20)
+            .setScale(0.3);
+        // Pop in with a little overshoot, then drift up and fade out.
+        this.tweens.add({ targets: label, scale: 1, duration: 200, ease: 'Back.easeOut' });
         this.tweens.add({
             targets: label,
             y: py - TILE * 2,
@@ -618,6 +623,7 @@ export class GameScene extends Scene {
         this.resetting = true;
         this.audio.stopMusic();
         this.audio.play('die');
+        this.cameras.main.flash(150, 255, 255, 255); // brief death-hit flash
         this.player.kill();
         this.cameras.main.stopFollow();
 

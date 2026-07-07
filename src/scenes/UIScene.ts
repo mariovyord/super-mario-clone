@@ -47,6 +47,10 @@ export class UIScene extends Scene {
 
         this.refresh();
 
+        // Fade the HUD up together with the world (GameScene fades in too), so
+        // the readout doesn't pop over a still-dark level.
+        this.cameras.main.fadeIn(300, 0, 0, 0);
+
         // React to changes GameScene pushes through the registry.
         this.registry.events.on('changedata-score', this.refresh, this);
         this.registry.events.on('changedata-coins', this.refresh, this);

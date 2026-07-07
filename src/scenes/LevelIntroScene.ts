@@ -19,6 +19,7 @@ export class LevelIntroScene extends Scene {
         const cx = GAME_WIDTH / 2;
         const cy = GAME_HEIGHT / 2;
         this.cameras.main.setBackgroundColor('#000000');
+        this.cameras.main.fadeIn(300, 0, 0, 0);
 
         const index = (this.registry.get('levelIndex') as number) ?? 0;
         const lives = (this.registry.get('lives') as number) ?? 0;
@@ -43,7 +44,10 @@ export class LevelIntroScene extends Scene {
             })
             .setOrigin(0, 0.5);
 
-        // Hold the card briefly, then drop into the level.
-        this.time.delayedCall(1500, () => this.scene.start('Game'));
+        // Hold the card briefly, then fade down into the level.
+        this.time.delayedCall(1500, () => {
+            this.cameras.main.fadeOut(300, 0, 0, 0);
+            this.cameras.main.once('camerafadeoutcomplete', () => this.scene.start('Game'));
+        });
     }
 }
