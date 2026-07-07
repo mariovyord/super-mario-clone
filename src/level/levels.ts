@@ -2,6 +2,10 @@ import { LEVEL_1_1 } from './level-1-1';
 import { LEVEL_1_2 } from './level-1-2';
 import { LEVEL_1_3 } from './level-1-3';
 import { LEVEL_1_4 } from './level-1-4';
+import { LEVEL_2_1 } from './level-2-1';
+import { LEVEL_2_2 } from './level-2-2';
+import { LEVEL_2_3 } from './level-2-3';
+import { LEVEL_2_4 } from './level-2-4';
 
 /**
  * A single playable course: a display label, the authored tile rows (see the
@@ -28,4 +32,8 @@ export const LEVELS: LevelDefinition[] = [
     { name: '1-2', rows: LEVEL_1_2, backgroundColor: '#6ab0ff' },
     { name: '1-3', rows: LEVEL_1_3, backgroundColor: '#2038a8' },
     { name: '1-4', rows: LEVEL_1_4, backgroundColor: '#0a0a1a' },
+    { name: '2-1', rows: LEVEL_2_1, backgroundColor: '#7ec0ee' },
+    { name: '2-2', rows: LEVEL_2_2, backgroundColor: '#0b1020' },
+    { name: '2-3', rows: LEVEL_2_3, backgroundColor: '#3a2a5a' },
+    { name: '2-4', rows: LEVEL_2_4, backgroundColor: '#1a0a0a' },
 ];
