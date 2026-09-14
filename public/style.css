@@ -1,15 +1,142 @@
+:root {
+    color-scheme: dark;
+    font-family: ui-monospace, 'SFMono-Regular', Consolas, monospace;
+    color: #f5edd9;
+    background: #09121b;
+    font-synthesis: none;
+    --gold: #e7bd75;
+    --muted: #91aaa6;
+}
+
+* { box-sizing: border-box; }
+
 body {
     margin: 0;
-    padding: 0;
-    color: rgba(255, 255, 255, 0.87);
-    background-color: #0f0f0f;
+    min-width: 240px;
+    min-height: 100vh;
+    min-height: 100svh;
+    background:
+        radial-gradient(ellipse at 20% 15%, #21403866, transparent 55%),
+        radial-gradient(ellipse at 85% 80%, #24344866, transparent 55%),
+        #09121b;
+}
+
+body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.18;
+    background-image: radial-gradient(#87c9ad 0.6px, transparent 0.6px);
+    background-size: 24px 24px;
+    mask-image: linear-gradient(transparent, #000, transparent);
 }
 
 #app {
-    width: 100%;
-    height: 100vh;
-    overflow: hidden;
+    position: relative;
+    min-height: 100vh;
+    min-height: 100svh;
     display: flex;
+    flex-direction: column;
     justify-content: center;
     align-items: center;
+    gap: 18px;
+    padding: 22px 24px;
+}
+
+.masthead, .game-footer {
+    width: min(768px, calc(100vw - 48px), calc((100svh - 160px) * 1.066666667));
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+}
+
+.wordmark {
+    margin: 0;
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 23px;
+    font-weight: normal;
+    letter-spacing: -0.6px;
+}
+
+.wordmark span { color: var(--gold); }
+
+.edition {
+    color: var(--muted);
+    font-size: 9px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    text-align: right;
+    line-height: 1.7;
+}
+
+#game-container {
+    position: relative;
+    flex: none;
+    width: min(768px, calc(100vw - 48px), calc((100svh - 160px) * 1.066666667));
+    aspect-ratio: 256 / 240;
+    background: #0b1825;
+    outline: 1px solid #e7bd7555;
+    box-shadow:
+        0 0 0 5px #0b1825,
+        0 0 0 6px #87c9ad1a,
+        0 22px 80px #0009,
+        0 0 80px #87c9ad08;
+}
+
+#game-container canvas {
+    position: absolute;
+    inset: 0;
+    display: block;
+    image-rendering: pixelated;
+    touch-action: none;
+}
+
+.game-footer {
+    color: var(--muted);
+    font-size: 9px;
+    line-height: 1.7;
+}
+
+.trail-mark {
+    display: inline-block;
+    width: 5px;
+    height: 5px;
+    margin-right: 8px;
+    background: var(--gold);
+    box-shadow: 0 0 9px #e7bd7555;
+    transform: rotate(45deg);
+}
+
+.footer-note { color: #6e8887; text-align: right; }
+
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+}
+
+@media (max-width: 540px) {
+    #app { gap: 14px; padding: 18px 12px; }
+    .masthead, .game-footer, #game-container {
+        width: min(calc(100vw - 24px), calc((100svh - 132px) * 1.066666667));
+    }
+    .wordmark { font-size: 20px; }
+    .edition { font-size: 7px; letter-spacing: 1px; }
+    .game-footer { font-size: 8px; }
+}
+
+@media (max-height: 480px) {
+    #app { padding: 8px 12px; gap: 0; }
+    .masthead, .game-footer { display: none; }
+    #game-container {
+        width: min(calc(100vw - 24px), calc((100svh - 20px) * 1.066666667));
+    }
 }

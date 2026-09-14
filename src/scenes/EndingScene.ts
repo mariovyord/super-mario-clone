@@ -1,6 +1,7 @@
 import { Scene } from 'phaser';
-import { GAME_WIDTH, GAME_HEIGHT } from '../config/constants';
+import { GAME_WIDTH } from '../config/constants';
 import { getAudio } from '../systems/audio/AudioBus';
+import { UI, card, heading, label, menuBackdrop, ornament } from '../visuals/UI';
 
 /**
  * EndingScene is the win screen shown after the final course is cleared. It
@@ -18,34 +19,20 @@ export class EndingScene extends Scene {
     create() {
         this.done = false;
         const cx = GAME_WIDTH / 2;
-        this.cameras.main.setBackgroundColor('#000000');
+        menuBackdrop(this, (this.registry.get('levelIndex') as number) ?? 0);
         this.cameras.main.fadeIn(300, 0, 0, 0);
 
         const score = (this.registry.get('score') as number) ?? 0;
 
-        this.add.image(cx, GAME_HEIGHT * 0.26, 'marioBig').setScale(2);
-        this.add
-            .text(cx, GAME_HEIGHT * 0.5, 'YOU WIN!', {
-                fontFamily: 'monospace',
-                fontSize: '18px',
-                fontStyle: 'bold',
-                color: '#ffe08a',
-            })
-            .setOrigin(0.5);
-        this.add
-            .text(cx, GAME_HEIGHT * 0.64, `SCORE  ${String(score).padStart(6, '0')}`, {
-                fontFamily: 'monospace',
-                fontSize: '10px',
-                color: '#ffffff',
-            })
-            .setOrigin(0.5);
-        this.add
-            .text(cx, GAME_HEIGHT * 0.8, 'THANKS FOR PLAYING', {
-                fontFamily: 'monospace',
-                fontSize: '8px',
-                color: '#8ad0ff',
-            })
-            .setOrigin(0.5);
+        label(this, cx, 26, 'THE WOODLAND REMEMBERS', 7, UI.goldText);
+        this.add.image(cx, 59, 'marioBig').setDepth(30);
+        ornament(this, 82, 110);
+        card(this, 27, 94, 202, 85);
+        heading(this, 114, 'You Win!', 28, UI.goldText);
+        label(this, cx, 139, 'ADVENTURE COMPLETE', 7, UI.jadeText);
+        label(this, cx, 160, `SCORE  ${String(score).padStart(6, '0')}`, 11);
+        label(this, cx, 197, 'THANK YOU FOR WANDERING', 8, UI.goldText);
+        label(this, cx, 215, 'ANY KEY / TAP TO RETURN', 7, UI.muted);
 
         getAudio().stopMusic();
 
