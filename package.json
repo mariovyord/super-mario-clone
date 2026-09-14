@@ -1,6 +1,6 @@
 {
-  "name": "super-mario-clone",
-  "description": "Super Mario Bros browser clone — 2 worlds, 8 courses (Phaser 4 + TypeScript + Vite).",
+  "name": "super-bario",
+  "description": "Super Bario: A Woodland Adventure — 2 worlds, 8 courses (Phaser 4 + TypeScript + Vite).",
   "version": "1.1.0",
   "private": true,
   "license": "MIT",
@@ -12,7 +12,7 @@
     "vite",
     "game",
     "platformer",
-    "super-mario"
+    "super-bario"
   ],
   "homepage": "https://mariovyord.github.io/super-mario-clone/",
   "repository": {

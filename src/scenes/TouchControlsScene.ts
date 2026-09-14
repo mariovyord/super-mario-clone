@@ -2,6 +2,7 @@ import { Scene } from 'phaser';
 import { GAME_WIDTH, GAME_HEIGHT } from '../config/constants';
 import { getTouchState } from '../systems/input/TouchState';
 import type { TouchState } from '../systems/input/TouchState';
+import { UI } from '../visuals/UI';
 
 /**
  * On-screen touch controls (PLAN.md §12, Milestone 9). A parallel overlay,
@@ -36,25 +37,31 @@ export class TouchControlsScene extends Scene {
     /** A translucent round button that holds `state[key]` while pressed. */
     private makeButton(x: number, y: number, key: keyof TouchState, label: string): void {
         const radius = 16;
+        const accent = key === 'jump' ? UI.gold : key === 'run' ? UI.coral : UI.jade;
         const button = this.add
-            .circle(x, y, radius, 0xffffff, 0.25)
-            .setStrokeStyle(2, 0xffffff, 0.6)
+            .circle(x, y, radius, UI.ink, 0.3)
+            .setStrokeStyle(1, accent, 0.65)
             .setScrollFactor(0)
             .setDepth(50)
             .setInteractive();
         this.add
-            .text(x, y, label, { fontFamily: 'monospace', fontSize: '12px', color: '#ffffff' })
+            .text(x, y, label, {
+                fontFamily: 'monospace', fontSize: '11px', color: UI.ivory,
+                shadow: { offsetX: 0, offsetY: 1, color: '#0b1825', blur: 0, fill: true },
+            })
             .setOrigin(0.5)
             .setScrollFactor(0)
             .setDepth(51);
 
         const press = () => {
             this.touch[key] = true;
-            button.setFillStyle(0xffffff, 0.5);
+            button.setFillStyle(accent, 0.45);
+            button.setStrokeStyle(1, accent, 1);
         };
         const release = () => {
             this.touch[key] = false;
-            button.setFillStyle(0xffffff, 0.25);
+            button.setFillStyle(UI.ink, 0.3);
+            button.setStrokeStyle(1, accent, 0.65);
         };
 
         button.on('pointerdown', press);

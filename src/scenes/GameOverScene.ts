@@ -1,6 +1,7 @@
 import { Scene } from 'phaser';
-import { GAME_WIDTH, GAME_HEIGHT } from '../config/constants';
+import { GAME_WIDTH } from '../config/constants';
 import { getAudio } from '../systems/audio/AudioBus';
+import { UI, card, heading, label, menuBackdrop, ornament } from '../visuals/UI';
 
 /**
  * GameOverScene is the end-of-run screen shown when Mario runs out of lives. It
@@ -18,26 +19,19 @@ export class GameOverScene extends Scene {
     create() {
         this.done = false;
         const cx = GAME_WIDTH / 2;
-        this.cameras.main.setBackgroundColor('#000000');
+        menuBackdrop(this, (this.registry.get('levelIndex') as number) ?? 0);
         this.cameras.main.fadeIn(300, 0, 0, 0);
 
         const score = (this.registry.get('score') as number) ?? 0;
 
-        this.add
-            .text(cx, GAME_HEIGHT * 0.42, 'GAME OVER', {
-                fontFamily: 'monospace',
-                fontSize: '18px',
-                fontStyle: 'bold',
-                color: '#ffffff',
-            })
-            .setOrigin(0.5);
-        this.add
-            .text(cx, GAME_HEIGHT * 0.6, `SCORE  ${String(score).padStart(6, '0')}`, {
-                fontFamily: 'monospace',
-                fontSize: '10px',
-                color: '#ffe08a',
-            })
-            .setOrigin(0.5);
+        card(this, 27, 62, 202, 120, UI.coral);
+        label(this, cx, 80, 'THE TRAIL RESTS HERE', 7, UI.coralText);
+        heading(this, 105, 'Game Over', 26);
+        ornament(this, 126, 124, UI.coral);
+        label(this, cx, 143, 'FINAL SCORE', 7, UI.muted);
+        label(this, cx, 160, String(score).padStart(6, '0'), 14, UI.goldText);
+        label(this, cx, 199, 'ANOTHER ADVENTURE AWAITS', 7);
+        label(this, cx, 214, 'ANY KEY / TAP TO RETURN', 7, UI.muted);
 
         getAudio().stopMusic();
 

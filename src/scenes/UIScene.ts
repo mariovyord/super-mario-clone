@@ -1,4 +1,5 @@
 import { Scene } from 'phaser';
+import { UI } from '../visuals/UI';
 
 /**
  * UIScene is the HUD overlay. It runs in parallel on top of GameScene so the
@@ -24,25 +25,29 @@ export class UIScene extends Scene {
         const font: Phaser.Types.GameObjects.Text.TextStyle = {
             fontFamily: 'monospace',
             fontSize: '8px',
-            color: '#ffffff',
+            color: UI.ivory,
+            stroke: '#0b1825',
+            strokeThickness: 2,
+            shadow: { offsetX: 0, offsetY: 1, color: '#0b1825', blur: 0, fill: true },
         };
+        const caption = { ...font, color: UI.goldText, fontSize: '7px' };
 
-        // "MARIO / score" block, top-left (classic SMB layout).
-        this.add.text(16, 8, 'MARIO', font);
+        // "BARIO / score" block, top-left (classic SMB layout).
+        this.add.text(16, 8, 'BARIO', caption);
         this.scoreText = this.add.text(16, 18, '', font);
 
         // Coin counter (top) and lives counter (below), each an icon + count.
-        this.add.image(84, 11, 'coin').setScale(0.7);
+        this.add.image(84, 11, 'coin').setScale(0.6);
         this.coinText = this.add.text(92, 8, '', font);
-        this.add.image(84, 23, 'mario').setScale(0.7);
+        this.add.image(84, 23, 'mario').setScale(0.6);
         this.livesText = this.add.text(92, 18, '', font);
 
         // Centre: the world label (the "1-1" reflects the current course).
-        this.add.text(150, 8, 'WORLD', font);
+        this.add.text(150, 8, 'WORLD', caption);
         this.worldText = this.add.text(158, 18, '', font);
 
         // Right: the SMB countdown timer.
-        this.add.text(206, 8, 'TIME', font);
+        this.add.text(206, 8, 'TIME', caption);
         this.timeText = this.add.text(210, 18, '', font);
 
         this.refresh();
@@ -77,6 +82,7 @@ export class UIScene extends Scene {
         this.coinText.setText('x' + String(coins).padStart(2, '0'));
         this.livesText.setText('x' + String(lives));
         this.timeText.setText(String(time).padStart(3, '0'));
+        this.timeText.setColor(time <= 100 ? UI.coralText : UI.ivory);
         this.worldText.setText(world);
     }
 }

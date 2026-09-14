@@ -1,6 +1,7 @@
 import { Scene } from 'phaser';
 import { GAME_WIDTH, GAME_HEIGHT } from '../config/constants';
 import { getAudio } from '../systems/audio/AudioBus';
+import { UI, card, heading, label, ornament } from '../visuals/UI';
 
 /**
  * PauseScene is a lightweight modal overlay launched by GameScene (PLAN.md §9,
@@ -20,21 +21,13 @@ export class PauseScene extends Scene {
         this.canResume = false;
 
         // Dim the frozen level and label it.
-        this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, 0x000000, 0.5).setOrigin(0);
-        this.add
-            .text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 8, 'PAUSED', {
-                fontFamily: 'monospace',
-                fontSize: '16px',
-                color: '#ffffff',
-            })
-            .setOrigin(0.5);
-        this.add
-            .text(GAME_WIDTH / 2, GAME_HEIGHT / 2 + 12, 'P / ESC RESUME    M MUTE', {
-                fontFamily: 'monospace',
-                fontSize: '7px',
-                color: '#dddddd',
-            })
-            .setOrigin(0.5);
+        this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, UI.ink, 0.64).setOrigin(0);
+        card(this, 30, 71, 196, 102);
+        label(this, GAME_WIDTH / 2, 87, 'A MOMENT OF QUIET', 7, UI.goldText);
+        heading(this, 112, 'Paused', 26);
+        ornament(this, 132, 110);
+        label(this, GAME_WIDTH / 2, 146, 'P / ESC / TAP TO RESUME', 8);
+        label(this, GAME_WIDTH / 2, 160, 'M  TOGGLE SOUND', 7, UI.muted);
 
         // Ignore the same-frame echo of the key that opened the menu, then arm.
         this.time.delayedCall(180, () => {

@@ -1,6 +1,8 @@
 import { Scene } from 'phaser';
-import { GAME_WIDTH, GAME_HEIGHT } from '../config/constants';
+import { GAME_WIDTH } from '../config/constants';
 import { LEVELS } from '../level/levels';
+import { themeFor } from '../visuals/Scenery';
+import { UI, card, heading, label, menuBackdrop, ornament } from '../visuals/UI';
 
 /**
  * LevelIntroScene is the between-course card (classic SMB "WORLD 1-1" screen).
@@ -17,32 +19,22 @@ export class LevelIntroScene extends Scene {
 
     create() {
         const cx = GAME_WIDTH / 2;
-        const cy = GAME_HEIGHT / 2;
-        this.cameras.main.setBackgroundColor('#000000');
         this.cameras.main.fadeIn(300, 0, 0, 0);
 
         const index = (this.registry.get('levelIndex') as number) ?? 0;
         const lives = (this.registry.get('lives') as number) ?? 0;
         const name = LEVELS[index]?.name ?? LEVELS[0].name;
 
-        this.add
-            .text(cx, cy - 22, `WORLD ${name}`, {
-                fontFamily: 'monospace',
-                fontSize: '16px',
-                fontStyle: 'bold',
-                color: '#ffffff',
-            })
-            .setOrigin(0.5);
-
-        // Lives card: a small Mario head + "x N", centred as a pair under the label.
-        this.add.image(cx - 8, cy + 14, 'mario').setOrigin(1, 0.5);
-        this.add
-            .text(cx, cy + 14, `x  ${lives}`, {
-                fontFamily: 'monospace',
-                fontSize: '12px',
-                color: '#ffffff',
-            })
-            .setOrigin(0, 0.5);
+        menuBackdrop(this, index);
+        const theme = themeFor(index);
+        card(this, 27, 65, 202, 113, theme.accent);
+        label(this, cx, 81, 'THE TRAIL CONTINUES', 7, UI.goldText);
+        heading(this, 105, `World ${name}`, 26);
+        label(this, cx, 126, theme.name, 8, UI.jadeText);
+        ornament(this, 140, 120, theme.accent);
+        this.add.image(cx - 13, 159, 'mario').setDepth(30);
+        label(this, cx + 12, 159, `× ${lives}`, 11);
+        label(this, cx, 203, 'EVERY GREAT JOURNEY BEGINS WITH A STEP', 6, UI.muted);
 
         // Hold the card briefly, then fade down into the level.
         this.time.delayedCall(1500, () => {

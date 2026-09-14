@@ -1,8 +1,9 @@
 import { Scene } from 'phaser';
-import { GAME_WIDTH, GAME_HEIGHT } from '../config/constants';
+import { GAME_WIDTH } from '../config/constants';
 import { LEVELS } from '../level/levels';
 import { getAudio } from '../systems/audio/AudioBus';
 import { resetRunState } from '../systems/runState';
+import { UI, card, heading, label, menuBackdrop, ornament } from '../visuals/UI';
 
 /**
  * TitleScene is the front-end shown before play (PLAN.md §9, Milestone 8). It
@@ -20,7 +21,7 @@ export class TitleScene extends Scene {
     create() {
         this.started = false;
         const cx = GAME_WIDTH / 2;
-        this.cameras.main.setBackgroundColor('#5c94fc');
+        menuBackdrop(this);
         this.cameras.main.fadeIn(300, 0, 0, 0);
 
         // The title is the one true "fresh start": clear any leftover run state
@@ -28,50 +29,21 @@ export class TitleScene extends Scene {
         // full stock of lives and a zeroed score.
         resetRunState(this.registry);
 
-        // Mascot + title block.
-        this.add.image(cx, GAME_HEIGHT * 0.3, 'marioBig').setScale(2);
-        this.add
-            .text(cx, GAME_HEIGHT * 0.5, 'SUPER MARIO', {
-                fontFamily: 'monospace',
-                fontSize: '20px',
-                fontStyle: 'bold',
-                color: '#ffffff',
-            })
-            .setOrigin(0.5);
-        this.add
-            .text(cx, GAME_HEIGHT * 0.6, `WORLD ${LEVELS[0].name}`, {
-                fontFamily: 'monospace',
-                fontSize: '10px',
-                color: '#ffe08a',
-            })
-            .setOrigin(0.5);
+        label(this, cx, 22, `WOODLAND EDITION  /  WORLD ${LEVELS[0].name}`, 7, UI.goldText);
+        label(this, cx, 45, 'SUPER', 14).setLetterSpacing(5);
+        heading(this, 75, 'BARIO', 40);
+        label(this, cx, 103, 'a woodland adventure', 9, UI.goldText);
+        ornament(this, 116, 122);
+        this.add.ellipse(cx, 156, 36, 6, UI.ink, 0.55).setDepth(25);
+        this.add.image(cx, 139, 'marioBig').setDepth(30);
+        card(this, 34, 167, 188, 23);
 
-        // Blinking "press start" prompt.
-        const prompt = this.add
-            .text(cx, GAME_HEIGHT * 0.76, 'PRESS ENTER / TAP TO START', {
-                fontFamily: 'monospace',
-                fontSize: '8px',
-                color: '#ffffff',
-            })
-            .setOrigin(0.5);
+        // Keep the original start-prompt cadence and every start binding.
+        const prompt = label(this, cx, 178, 'ENTER / SPACE / TAP TO START', 8, UI.goldText);
         this.tweens.add({ targets: prompt, alpha: 0.15, duration: 550, yoyo: true, repeat: -1 });
-
-        // One-line "how to play": the objective, then the controls beneath it.
-        this.add
-            .text(cx, GAME_HEIGHT * 0.84, 'GOAL: DODGE ENEMIES, CLEAR THE PITS, REACH THE FLAG', {
-                fontFamily: 'monospace',
-                fontSize: '7px',
-                color: '#bfe0ff',
-            })
-            .setOrigin(0.5);
-
-        this.add
-            .text(cx, GAME_HEIGHT * 0.9, 'ARROWS MOVE   Z JUMP   X RUN/FIRE   P PAUSE', {
-                fontFamily: 'monospace',
-                fontSize: '7px',
-                color: '#d0d0d0',
-            })
-            .setOrigin(0.5);
+        label(this, cx, 199, 'BRAVE THE WILDS. REACH THE FLAG.', 7, UI.ivory);
+        label(this, cx, 212, 'MOVE ← → / A D   JUMP SPACE / ↑ / Z', 7, UI.muted);
+        label(this, cx, 223, 'RUN/FIRE SHIFT / X   PAUSE P / ESC', 7, UI.muted);
 
         // Instantiate the audio engine now so the start gesture unlocks it.
         getAudio();

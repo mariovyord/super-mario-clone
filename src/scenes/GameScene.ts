@@ -14,6 +14,8 @@ import { getAudio } from '../systems/audio/AudioBus';
 import { resetRunState } from '../systems/runState';
 import { LEVELS } from '../level/levels';
 import { TileMapBuilder } from '../level/TileMapBuilder';
+import { createBackdrop, dressTerrain } from '../visuals/Scenery';
+import { Effects } from '../visuals/Effects';
 import {
     TILE,
     STOMP_SCORE,
@@ -68,6 +70,7 @@ export class GameScene extends Scene {
     private banner?: Phaser.GameObjects.Text;
     /** Shared procedural audio engine (Milestone 8). */
     private readonly audio = getAudio();
+    private effects!: Effects;
 
     constructor() {
         super('Game');
@@ -97,11 +100,12 @@ export class GameScene extends Scene {
         const def = LEVELS[index];
         this.registry.set('world', def.name); // HUD + title read this label.
 
-        // Per-level sky colour (defaults to the classic SMB 1-1 blue).
-        this.cameras.main.setBackgroundColor(def.backgroundColor ?? '#5c94fc');
+        createBackdrop(this, index);
+        this.effects = new Effects(this);
 
         // Build the authored level: static solids + spawn data.
         const level = new TileMapBuilder(this, def.rows).build();
+        dressTerrain(this, def.rows, level.solids);
 
         // The camera is clamped to the level, but the physics world extends below
         // it so Mario can actually fall *through* a pit (rather than parking on
@@ -121,7 +125,10 @@ export class GameScene extends Scene {
             : new KeyboardController(this);
         this.player = new Player(this, level.playerSpawn.x, level.playerSpawn.y);
         // Player signals its own jumps; the scene owns the sfx (Player stays audio-free).
-        this.player.on('jump', () => this.audio.play('jump'));
+        this.player.on('jump', () => {
+            this.audio.play('jump');
+            this.effects.dust(this.player.x, (this.player.body as Phaser.Physics.Arcade.Body).bottom);
+        });
 
         // End-of-level flagpole (with its trigger) and castle backdrop.
         if (level.flagPosition) {
@@ -256,6 +263,8 @@ export class GameScene extends Scene {
             (powerup as PowerUp).update();
         }
 
+        this.effects.update(this.player, this.goombas, this.koopas, this.fireballs, delta);
+
         this.tickTimer(delta);
 
         // Pit death plane: fell below the level floor with no ground to catch him.
@@ -281,6 +290,7 @@ export class GameScene extends Scene {
     /** Coin pickup: remove the coin, bump score + coin count. */
     private onCollectCoin: Phaser.Types.Physics.Arcade.ArcadePhysicsCallback = (_player, coinObj) => {
         const coin = coinObj as Phaser.Physics.Arcade.Sprite;
+        this.effects.burst(coin.x, coin.y);
         coin.disableBody(true, true);
         this.collectCoin();
     };
@@ -294,6 +304,7 @@ export class GameScene extends Scene {
         powerupObj,
     ) => {
         const powerup = powerupObj as PowerUp;
+        this.effects.burst(powerup.x, powerup.y, 0xb2e6bb, 16);
         if (powerup.kind === 'oneup') {
             this.grantOneUp(powerup.x, powerup.y);
         } else if (powerup.kind === 'mushroom') {
@@ -381,6 +392,7 @@ export class GameScene extends Scene {
 
     /** Apply the reward from a bumped block (shared by Mario and shell bumps). */
     private rewardBlockBump(block: Block, result: BumpResult): void {
+        if (result !== 'none') this.effects.burst(block.x, block.y - 8, result === 'break' ? 0xadb2bd : 0xffdc82, 6);
         if (result === 'coin') {
             this.popCoin(block.x, block.y);
             this.collectCoin();
@@ -414,6 +426,7 @@ export class GameScene extends Scene {
 
         if (pBody.touching.down && gBody.touching.up) {
             goomba.stomp();
+            this.effects.dust(goomba.x, goomba.y);
             player.bounce();
             this.audio.play('stomp');
             this.addScore(STOMP_SCORE);
@@ -449,6 +462,7 @@ export class GameScene extends Scene {
             case 'walking':
                 if (stomp) {
                     koopa.stompToShell();
+                    this.effects.dust(koopa.x, koopa.y);
                     player.bounce();
                     this.audio.play('stomp');
                     this.addScore(STOMP_SCORE);
@@ -564,6 +578,7 @@ export class GameScene extends Scene {
 
     /** A coin bursting out of a bumped block: arcs up over the block, then pops. */
     private popCoin(x: number, y: number): void {
+        this.effects.burst(x, y - TILE * 2, 0xffdc82, 6);
         const coin = this.add.image(x, y - TILE, 'coin').setDepth(5);
         this.tweens.add({
             targets: coin,
@@ -596,7 +611,7 @@ export class GameScene extends Scene {
         const px = x ?? this.player.x;
         const py = y ?? this.player.y;
         const label = this.add
-            .text(px, py, '1UP', { fontFamily: 'monospace', fontSize: '8px', color: '#2ecc40' })
+            .text(px, py, '1UP', { fontFamily: 'monospace', fontSize: '8px', color: '#b2e6bb', stroke: '#17263e', strokeThickness: 2 })
             .setOrigin(0.5)
             .setDepth(20)
             .setScale(0.3);
@@ -674,8 +689,9 @@ export class GameScene extends Scene {
         const midY = (topY + baseY) / 2;
 
         // Pole (thin bar) + ball finial, drawn behind the pennant.
-        this.add.rectangle(pos.x, midY, 4, baseY - topY, 0xbfefbf).setDepth(0);
-        this.add.circle(pos.x, topY, 4, 0xe8f8e8).setDepth(1);
+        this.add.rectangle(pos.x, midY, 4, baseY - topY, 0x293650).setDepth(0);
+        this.add.rectangle(pos.x - 1, midY, 1, baseY - topY, 0xffdc82).setDepth(0);
+        this.add.image(pos.x, topY, 'spark').setScale(1.5).setDepth(1);
         this.flagPennant = this.add.image(pos.x, topY + 8, 'flag').setDepth(1);
 
         // Overlap trigger covering the pole: touching it clears the level.
@@ -700,6 +716,7 @@ export class GameScene extends Scene {
             return;
         }
         this.levelComplete = true;
+        this.effects.burst(this.flagX, this.player.y, 0xffdc82, 24);
         this.audio.stopMusic();
         this.audio.play('flag');
 
@@ -708,6 +725,7 @@ export class GameScene extends Scene {
         body.stop();
         body.enable = false;
         this.player.setX(this.flagX);
+        this.effects.pose(this.player, '');
         this.cameras.main.stopFollow();
 
         // Slide Mario (and the pennant) down to the ground, then walk to the castle.
@@ -737,6 +755,7 @@ export class GameScene extends Scene {
             x: this.castleX,
             duration: 1200,
             ease: 'Linear',
+            onUpdate: tween => this.effects.march(this.player, tween.progress),
             onComplete: () => {
                 this.player.setVisible(false); // vanish into the castle
                 this.levelCleared();
@@ -780,7 +799,11 @@ export class GameScene extends Scene {
             .text(cam.width / 2, cam.height / 2, text, {
                 fontFamily: 'monospace',
                 fontSize: '16px',
-                color: '#ffffff',
+                color: '#fff2cf',
+                stroke: '#17263e',
+                strokeThickness: 4,
+                backgroundColor: '#17263e',
+                padding: { x: 8, y: 10 },
             })
             .setOrigin(0.5)
             .setScrollFactor(0)
