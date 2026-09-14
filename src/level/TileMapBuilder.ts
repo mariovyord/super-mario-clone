@@ -72,6 +72,8 @@ export class TileMapBuilder {
         let castlePosition: PhaserMath.Vector2 | null = null;
 
         const cols = this.rows.reduce((max, row) => Math.max(max, row.length), 0);
+        const isSolid = (col: number, row: number): boolean =>
+            Object.prototype.hasOwnProperty.call(SOLID_TEXTURES, this.rows[row]?.[col] ?? '');
 
         this.rows.forEach((row, ry) => {
             for (let cx = 0; cx < row.length; cx++) {
@@ -88,7 +90,15 @@ export class TileMapBuilder {
                 if (texture) {
                     // create() gives the tile a static body sized to the texture;
                     // no refreshBody() needed since we never scale/re-origin it.
-                    solids.create(x, y, texture);
+                    const tile = solids.create(x, y, texture) as Physics.Arcade.Sprite;
+                    const faces = (tile.body as Physics.Arcade.StaticBody).checkCollision;
+                    // Adjacent inert tiles form one surface. Hidden seams must
+                    // not act as ceilings when jumping against a pipe or wall.
+                    // Only X/P occlude faces: breakable blocks can disappear.
+                    faces.up = !isSolid(cx, ry - 1);
+                    faces.down = !isSolid(cx, ry + 1);
+                    faces.left = !isSolid(cx - 1, ry);
+                    faces.right = !isSolid(cx + 1, ry);
                     continue;
                 }
 
