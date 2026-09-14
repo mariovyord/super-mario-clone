@@ -32,8 +32,8 @@ export class UIScene extends Scene {
         };
         const caption = { ...font, color: UI.goldText, fontSize: '7px' };
 
-        // "MARIO / score" block, top-left (classic SMB layout).
-        this.add.text(16, 8, 'MARIO', caption);
+        // "BARIO / score" block, top-left (classic SMB layout).
+        this.add.text(16, 8, 'BARIO', caption);
         this.scoreText = this.add.text(16, 18, '', font);
 
         // Coin counter (top) and lives counter (below), each an icon + count.

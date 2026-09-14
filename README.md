@@ -1,11 +1,11 @@
-# Super Mario Bros — Browser Clone
+# Super Bario: A Woodland Adventure
 
-A browser remake of **Super Mario Bros.** — **8 courses across 2 worlds**
+A woodland-themed browser platformer inspired by **Super Mario Bros.** — **8 courses across 2 worlds**
 (1-1 through 2-4) with a full title → play → game-over → ending loop, built with
 [Phaser 4](https://phaser.io/) + TypeScript + Vite on Arcade physics.
 
-Everything you see and hear is generated at runtime — the textures are colored
-placeholder rectangles baked in code, and every sound effect and the background
+Everything you see and hear is generated at runtime — the woodland pixel-art
+textures are baked in code, and every sound effect and the background
 tune are synthesized with the Web Audio API. There are **no external art or
 audio assets**; the whole game ships as code.
 
@@ -29,7 +29,7 @@ audio assets**; the whole game ships as code.
 | --- | --- |
 | Move | `←` / `→` or `A` / `D` |
 | Jump | `Space` / `↑` / `Z` (hold for a higher jump) |
-| Run / throw fireball | `Shift` / `X` (hold to run; press to fire as Fire Mario) |
+| Run / throw fireball | `Shift` / `X` (hold to run; press to fire as Fire Bario) |
 | Pause | `P` / `Esc` |
 | Start game | `Enter` / `Space` / tap |
 | Mute (on pause screen) | `M` |
@@ -37,7 +37,7 @@ audio assets**; the whole game ships as code.
 **Touch** (shown automatically on touch devices)
 
 On-screen `◀` `▶` movement pad plus `A` (jump) and `B` (run / fire). Multiple
-fingers work at once, and keyboard + touch are merged so both drive Mario
+fingers work at once, and keyboard + touch are merged so both drive Bario
 simultaneously.
 
 ## Getting started

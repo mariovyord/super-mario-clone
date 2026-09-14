@@ -31,7 +31,7 @@ export class TitleScene extends Scene {
 
         label(this, cx, 22, `WOODLAND EDITION  /  WORLD ${LEVELS[0].name}`, 7, UI.goldText);
         label(this, cx, 45, 'SUPER', 14).setLetterSpacing(5);
-        heading(this, 75, 'MARIO', 40);
+        heading(this, 75, 'BARIO', 40);
         label(this, cx, 103, 'a woodland adventure', 9, UI.goldText);
         ornament(this, 116, 122);
         this.add.ellipse(cx, 156, 36, 6, UI.ink, 0.55).setDepth(25);
